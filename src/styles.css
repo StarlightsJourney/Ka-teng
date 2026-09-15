@@ -121,6 +121,9 @@ button { color: inherit; }
 .relation-avatar { position: relative; display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 12px; font-weight: 600; }
 .empty-relation { margin: 0; color: var(--text-3); font-size: 13px; }
 .navigation-hint { position: absolute; bottom: 12px; left: 50%; z-index: 3; padding: 4px 9px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); color: var(--text-4); background: var(--surface); font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
+.expand-pill { position: absolute; bottom: 40px; left: 50%; z-index: 3; padding: 7px 12px; border: 1px solid var(--accent); border-radius: var(--radius-pill); color: var(--accent-fg); background: var(--accent); box-shadow: var(--shadow-float); cursor: pointer; font-size: 12px; font-weight: 600; transform: translateX(-50%); white-space: nowrap; animation: expand-pill-pulse 2s ease-in-out infinite; }
+@keyframes expand-pill-pulse { 0%, 100% { opacity: .86; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .expand-pill { animation: none; } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
   .top-bar { width: calc(100% - 24px); }

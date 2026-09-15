@@ -22,6 +22,8 @@ export function App() {
   const [state, setState] = useState(initialState)
   const [theme, toggleTheme] = useTheme()
   const [searchInput, setSearchInput] = useState<HTMLInputElement | null>(null)
+  const [showAllConfirming, setShowAllConfirming] = useState(false)
+  const [hasHiddenRelatives, setHasHiddenRelatives] = useState(false)
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
@@ -34,6 +36,10 @@ export function App() {
   const currentMainId = state.selectedId ?? defaultMainId
   const currentMain = currentMainId ? state.peopleById.get(currentMainId) : undefined
   const shortcut = typeof navigator !== 'undefined' && (/Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent)) ? '⌘K' : 'Ctrl K'
+  const requestShowAll = () => {
+    if (state.showAll) perform(toggleExpandAll(false))
+    else setShowAllConfirming(true)
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -83,7 +89,10 @@ export function App() {
         onSearchDismiss={() => { searchInput?.blur(); perform(setSearch('')) }}
         suggestions={suggestions}
         familyFirstName={currentMain?.name.first || currentMain?.name.last || currentMain?.id || 'this person'}
-        onShowAllChange={(showAll) => perform(toggleExpandAll(showAll))}
+        confirming={showAllConfirming}
+        onRequestShowAll={requestShowAll}
+        onCancelShowAll={() => setShowAllConfirming(false)}
+        onConfirmShowAll={() => { setShowAllConfirming(false); perform(toggleExpandAll(true)) }}
         onThemeToggle={toggleTheme}
         shortcut={shortcut}
         inputRef={setSearchInput}
@@ -99,6 +108,7 @@ export function App() {
             onSelect={(id) => perform(selectPerson(id))}
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
+            onHiddenChange={setHasHiddenRelatives}
           />
         </div>
         {selected && <DetailsPanel
@@ -112,6 +122,7 @@ export function App() {
           onRemove={() => perform(removePersonAction(selected.id))}
           onClose={() => perform(clearSelection())}
         />}
+        {hasHiddenRelatives && !state.showAll && <button type="button" className="expand-pill" onClick={requestShowAll}>Expand · show the whole family</button>}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>
     </main>

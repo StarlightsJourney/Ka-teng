@@ -17,6 +17,7 @@ type FamilyChart2DProps = {
   onSelect: (personId: string) => void
   onExpand: (personId: string) => void
   onEdit: (personId: string) => void
+  onHiddenChange: (hasHidden: boolean) => void
 }
 
 type ZoomListener = SVGSVGElement & {
@@ -24,13 +25,15 @@ type ZoomListener = SVGSVGElement & {
 }
 
 type RenderedTree = {
-  data: Array<{ x: number; y: number }>
+  data: Array<{ id?: string; x: number; y: number; data?: { id?: string; _ktHidden?: number } }>
 }
 
 function centerVisibleTree(
   chart: ReturnType<typeof f3.createChart>,
   panelOpen: boolean,
   transitionTime: number,
+  mode: 'fit' | 'main',
+  mainId?: string | null,
 ): void {
   const svg = chart.svg as ZoomListener
   const listener = (svg.__zoomObj ? svg : svg.parentNode) as ZoomListener | null
@@ -54,11 +57,14 @@ function centerVisibleTree(
   const fitScale = Math.min(
     (availableWidth - 80) / treeWidth,
     (svgRect.height - 80) / treeHeight,
-    1,
+    1.25,
   )
-  const scale = Math.min(current.k, Number.isFinite(fitScale) && fitScale > 0 ? fitScale : current.k)
-  const treeCenterX = (minX + maxX) / 2
-  const treeCenterY = (minY + maxY) / 2
+  const scale = mode === 'main'
+    ? current.k
+    : Number.isFinite(fitScale) && fitScale > 0 ? fitScale : current.k
+  const main = tree.data.find((datum) => datum.id === mainId || datum.data?.id === mainId) ?? tree.data[0]
+  const treeCenterX = mode === 'main' && main ? main.x : (minX + maxX) / 2
+  const treeCenterY = mode === 'main' && main ? main.y : (minY + maxY) / 2
   const target = zoomIdentity
     .translate(targetCenterX - treeCenterX * scale, targetCenterY - treeCenterY * scale)
     .scale(scale)
@@ -121,7 +127,7 @@ function cardInnerHtml(
   </div>`
 }
 
-export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
+export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit, onHiddenChange }: FamilyChart2DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -134,16 +140,18 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   const showAllRef = useRef(showAll)
   const previousShowAllRef = useRef(showAll)
   const lastSelectionUpdateRef = useRef(0)
+  const onHiddenChangeRef = useRef(onHiddenChange)
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
   useEffect(() => {
     onExpandRef.current = onExpand
     onEditRef.current = onEdit
+    onHiddenChangeRef.current = onHiddenChange
     expandedIdsRef.current = expandedIds
     showAllRef.current = showAll
     selectedIdRef.current = selectedId
-  }, [expandedIds, onEdit, onExpand, selectedId, showAll])
+  }, [expandedIds, onEdit, onExpand, onHiddenChange, selectedId, showAll])
 
   useEffect(() => {
     peopleRef.current = people
@@ -194,9 +202,16 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
 
     chartRef.current = chart
+    const notifyHidden = () => {
+      const tree = chart.store.getTree() as RenderedTree | undefined
+      if (typeof onHiddenChangeRef.current === 'function') {
+        onHiddenChangeRef.current(!showAllRef.current && Boolean(tree?.data.some((datum) => (datum.data?._ktHidden ?? 0) > 0)))
+      }
+    }
     const updateCenteredTree = (transitionTime = 0) => {
       chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-      centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime)
+      centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime, showAllRef.current ? 'main' : 'fit', selectedIdRef.current ?? defaultMainId)
+      notifyHidden()
     }
     const resizeChart = () => {
       const currentChart = chartRef.current
@@ -221,6 +236,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     container.addEventListener('click', handleMoreClick, true)
     chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chart.updateTree({ initial: true, tree_position: 'fit' })
+    notifyHidden()
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
       window.clearTimeout(fitTimer)
@@ -237,8 +253,12 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     if (showAllRef.current) return
     const transitionTime = 650
     chartRef.current.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-    centerVisibleTree(chartRef.current, Boolean(selectedIdRef.current), transitionTime)
-  }, [expandedIds])
+    centerVisibleTree(chartRef.current, Boolean(selectedIdRef.current), transitionTime, 'fit', selectedIdRef.current ?? defaultMainId)
+    const tree = chartRef.current.store.getTree() as RenderedTree | undefined
+    if (typeof onHiddenChangeRef.current === 'function') {
+      onHiddenChangeRef.current(Boolean(tree?.data.some((datum) => (datum.data?._ktHidden ?? 0) > 0)))
+    }
+  }, [defaultMainId, expandedIds])
 
   useEffect(() => {
     if (!chartRef.current || previousShowAllRef.current === showAll) return
@@ -246,18 +266,27 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     const transitionTime = 650
     chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-    centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime)
+    centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime, showAll ? 'main' : 'fit', selectedIdRef.current ?? defaultMainId)
+    const tree = chart.store.getTree() as RenderedTree | undefined
+    if (typeof onHiddenChangeRef.current === 'function') {
+      onHiddenChangeRef.current(!showAll && Boolean(tree?.data.some((datum) => (datum.data?._ktHidden ?? 0) > 0)))
+    }
     previousShowAllRef.current = showAll
   }, [defaultMainId, showAll])
 
   useEffect(() => {
-    if (!chartRef.current || !selectedId) return
+    if (!chartRef.current) return
     const now = performance.now()
     const transitionTime = now - lastSelectionUpdateRef.current < 650 ? 0 : 650
-    chartRef.current.updateMainId(selectedId).updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-    centerVisibleTree(chartRef.current, true, transitionTime)
+    const mainId = selectedId ?? defaultMainId ?? peopleRef.current[0]?.id ?? ''
+    chartRef.current.updateMainId(mainId).updateTree({ tree_position: 'inherit', transition_time: transitionTime })
+    centerVisibleTree(chartRef.current, Boolean(selectedId), transitionTime, 'fit', mainId)
+    const tree = chartRef.current.store.getTree() as RenderedTree | undefined
+    if (typeof onHiddenChangeRef.current === 'function') {
+      onHiddenChangeRef.current(Boolean(tree?.data.some((datum) => (datum.data?._ktHidden ?? 0) > 0)))
+    }
     lastSelectionUpdateRef.current = now
-  }, [selectedId])
+  }, [defaultMainId, selectedId])
 
   return <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
 }

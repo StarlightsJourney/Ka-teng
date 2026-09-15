@@ -152,3 +152,18 @@ button { color: inherit; }
   .search-box:focus-within { width: auto; }
   .details-panel { top: auto; right: 12px; bottom: 12px; left: 12px; width: auto; max-height: 54%; }
 }
+@media (max-width: 720px) {
+  .top-bar { width: calc(100% - 16px); gap: 5px; padding: 0 7px; }
+  .brand { font-size: 18px; }
+  .search-box, .search-box:focus-within { width: 30px; flex: 0 0 30px; }
+  .search-box::before { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); content: "⌕"; pointer-events: none; }
+  .search-box input { position: relative; z-index: 1; width: 30px; padding: 0; text-indent: -9999px; }
+  .search-box:focus-within { width: 190px; flex-basis: 190px; }
+  .search-box:focus-within input { width: 100%; padding: 0 10px; text-indent: 0; }
+  .search-box:focus-within::before, .search-box kbd { display: none; }
+  .search-suggestions { width: 190px; }
+  .show-all-toggle { width: 30px; padding: 0; font-size: 0; }
+  .show-all-toggle::before { font-size: 16px; content: "⤢"; }
+  .details-panel { top: auto; right: 0; bottom: 0; left: 0; width: 100%; height: 45vh; max-height: none; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .scene-panel { padding: 60px 8px 8px; }
+}

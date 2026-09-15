@@ -207,5 +207,5 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     lastSelectionUpdateRef.current = now
   }, [selectedId])
 
-  return <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
+  return <div ref={containerRef} className={`f3 family-chart-host${selectedId ? ' panel-open' : ''}`} aria-label="2D family chart" />
 }

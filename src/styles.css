@@ -20,6 +20,14 @@ button { color: inherit; }
 .search-box input { width: 100%; height: 30px; padding: 0 42px 0 10px; border: 0; border-radius: var(--radius-pill); outline: none; color: var(--text); background: transparent; font-size: 13px; }
 .search-box input::placeholder { color: var(--text-3); }
 .search-box kbd { position: absolute; right: 8px; top: 6px; color: var(--text-4); font-size: 12px; letter-spacing: .1px; }
+.search-suggestions { position: absolute; top: 36px; left: 0; z-index: 30; display: grid; width: 360px; max-width: min(360px, calc(100vw - 24px)); gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-solid); box-shadow: var(--shadow-float); }
+.search-suggestions button { display: flex; width: 100%; min-height: 38px; align-items: center; gap: 9px; padding: 3px 7px; border: 0; border-radius: var(--radius-sm); color: var(--text-2); background: transparent; cursor: pointer; text-align: left; }
+.search-suggestions button:hover, .search-suggestions button.active { color: var(--text); background: var(--surface-2); }
+.suggestion-avatar { position: relative; display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 11px; font-weight: 600; }
+.suggestion-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.suggestion-avatar img.is-error { display: none; }
+.suggestion-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggestion-name strong { color: var(--text); font-weight: 700; }
 .toolbar { display: flex; align-items: center; gap: 4px; }
 .toolbar::before { width: 1px; height: 20px; margin: 0 4px 0 2px; background: var(--border); content: ""; }
 .show-all-toggle { height: 30px; padding: 0 9px; border: 0; border-radius: var(--radius-pill); color: var(--text-2); background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; }
@@ -64,7 +72,7 @@ button { color: inherit; }
 .family-chart-host.f3 .card_add_relative:hover { color: var(--text); }
 .family-chart-host.f3 div.card-to-add .card-inner, .family-chart-host.f3 div.card-new-rel .card-inner { border: 1px dashed var(--border); border-radius: var(--radius-md); color: var(--text-3); background: var(--surface); }
 .family-chart-host.f3 div.card-to-add .card-inner { display: grid; width: 220px; min-height: 60px; place-items: center; }
-.details-panel { position: absolute; top: 76px; right: 16px; bottom: 16px; z-index: 5; width: 320px; overflow-y: auto; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-float); }
+.details-panel { position: absolute; top: 76px; right: 16px; bottom: 16px; z-index: 20; width: 320px; overflow-y: auto; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-solid); box-shadow: var(--shadow-float); }
 .person-card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 0 0 18px; border-bottom: 1px solid var(--border-subtle); }
 .person-avatar { position: relative; display: grid; width: 56px; height: 56px; flex: 0 0 56px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 18px; font-weight: 600; }
 .person-card-copy { display: grid; min-width: 0; gap: 4px; }
@@ -98,4 +106,7 @@ button { color: inherit; }
   .search-box { width: auto; flex: 1 1 auto; }
   .search-box:focus-within { width: auto; }
   .details-panel { top: auto; right: 12px; bottom: 12px; left: 12px; width: auto; max-height: 54%; }
+}
+@media (min-width: 761px) {
+  .family-chart-host.panel-open #f3Canvas { transform: translateX(-168px); transition: transform .65s ease; }
 }

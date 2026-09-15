@@ -33,14 +33,15 @@ button { color: inherit; }
 .family-chart-host.f3 { --female-color: var(--female); --male-color: var(--male); --genderless-color: var(--muted); --background-color: var(--bg); --text-color: var(--text); height: 100%; color: var(--text); background: var(--bg); font-family: Inter, -apple-system, "Segoe UI", system-ui, sans-serif; }
 .family-chart-host.f3 div.card-rect { width: 200px; min-height: 56px; padding: 0; text-align: left; }
 .family-chart-host.f3 div.card-female .card-inner, .family-chart-host.f3 div.card-male .card-inner, .family-chart-host.f3 div.card-genderless .card-inner { background: var(--surface); }
-.family-chart-host.f3 div.card .kt-card { display: flex; width: 200px; min-height: 56px; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: var(--radius-card); box-shadow: var(--shadow); }
+.family-chart-host.f3 div.card .kt-card { display: flex; flex-direction: row; justify-content: flex-start; width: 200px; min-height: 56px; align-items: center; text-align: left; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: var(--radius-card); box-shadow: var(--shadow); }
 .family-chart-host.f3 div.card .kt-male { border-left-color: var(--male); }
 .family-chart-host.f3 div.card .kt-female { border-left-color: var(--female); }
 .family-chart-host.f3 div.card:hover .kt-card { border-color: var(--accent); }
 .family-chart-host.f3 .kt-avatar { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; color: var(--muted); background: var(--surface-2); font-size: 12px; font-weight: 600; }
-.family-chart-host.f3 .kt-body { min-width: 0; }
+.family-chart-host.f3 .kt-body { flex: 1 1 auto; min-width: 0; text-align: left; }
 .family-chart-host.f3 .kt-name { overflow: hidden; color: var(--text); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .family-chart-host.f3 .kt-life { min-height: 17px; color: var(--muted); font-size: 12px; }
+.family-chart-host.f3 .kt-life:empty { display: none; min-height: 0; }
 .family-chart-host.f3 .card-main .kt-card { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .family-chart-host.f3 path.link { stroke: var(--line) !important; stroke-width: 1.5px; }
 .family-chart-host.f3 .f3-path-to-main { stroke: var(--accent) !important; }

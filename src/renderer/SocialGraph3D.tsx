@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph3D, { type ForceGraphMethods, type GraphData } from 'react-force-graph-3d'
 import { forceRadial } from 'd3-force-3d'
 import * as THREE from 'three'
-import type { Friend, FriendLink, FriendCircle } from '../element'
+import type { Friend, FriendLink } from '../element'
 import { friendName } from '../element'
 import { neighbours, ringRadius } from '../scene'
 import type { ThemeMode } from '../theme'
@@ -29,6 +29,32 @@ type GraphRef = {
   refresh: () => void
 }
 
+type OrbitForce = ((alpha: number) => void) & {
+  initialize: (nodes: GraphNode[]) => void
+}
+
+function createOrbitForce(speed: number): OrbitForce {
+  let simulationNodes: GraphNode[] = []
+  const force = (() => {
+    for (const node of simulationNodes) {
+      if (node.id === 'me' || node.x === undefined || node.z === undefined) continue
+      Object.assign(node, {
+        vx: (node.vx ?? 0) - node.z * speed,
+        vz: (node.vz ?? 0) + node.x * speed,
+      })
+    }
+  }) as unknown as OrbitForce
+  force.initialize = (nextNodes) => {
+    simulationNodes = nextNodes
+  }
+  return force
+}
+
+function supportsWebGL(): boolean {
+  const canvas = document.createElement('canvas')
+  return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
+}
+
 const contextColors: Record<string, string> = {
   work: '#8B9DC3',
   university: '#B49FCC',
@@ -47,6 +73,9 @@ function nodeTexture(friend: Friend): THREE.CanvasTexture {
   canvas.width = 128
   canvas.height = 128
   const context = canvas.getContext('2d')!
+  context.beginPath()
+  context.arc(64, 64, 64, 0, Math.PI * 2)
+  context.clip()
   context.fillStyle = contextColors[friend.contexts[0] ?? 'other'] ?? contextColors.other
   context.fillRect(0, 0, 128, 128)
   context.fillStyle = '#ffffff'
@@ -59,9 +88,10 @@ function nodeTexture(friend: Friend): THREE.CanvasTexture {
 
 export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: SocialGraph3DProps) {
   const graphRef = useRef<GraphRef | ForceGraphMethods<GraphNode, GraphLink> | null>(null)
-  const pausedRef = useRef(false)
+  const graphSelectionRef = useRef(false)
   const [paused, setPaused] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [webglAvailable] = useState(() => typeof document === 'undefined' || supportsWebGL())
   const friendMap = useMemo(() => new Map(friends.map((friend) => [friend.id, friend])), [friends])
   const nodes = useMemo<GraphNode[]>(() => [
     { id: 'me', firstName: 'You', lastName: '', circle: 5, contexts: [], fx: 0, fy: 0, fz: 0 },
@@ -73,19 +103,6 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     if (!focusId) return null
     return new Set([focusId, ...neighbours(links, focusId)])
   }, [hoveredId, links, selectedId])
-  const fallbackPositions = useMemo(() => {
-    const result = new Map<string, { x: number; y: number }>([['me', { x: 50, y: 50 }]])
-    const byRing = new Map<number, Friend[]>()
-    for (const friend of friends) byRing.set(friend.circle, [...(byRing.get(friend.circle) ?? []), friend])
-    for (const [circle, ringFriends] of byRing) {
-      const radius = 8 + (ringRadius[circle as FriendCircle] / 520) * 36
-      ringFriends.forEach((friend, index) => {
-        const angle = (index / ringFriends.length) * Math.PI * 2 + circle / 50
-        result.set(friend.id, { x: 50 + Math.cos(angle) * radius, y: 50 + Math.sin(angle) * radius * 0.62 })
-      })
-    }
-    return result
-  }, [friends])
 
   useEffect(() => {
     const graph = graphRef.current
@@ -93,16 +110,38 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     const controls = graph.controls() as { autoRotate: boolean; autoRotateSpeed: number }
     controls.autoRotate = !paused
     controls.autoRotateSpeed = 0.6
-    if (paused) graph.pauseAnimation()
-    else {
-      graph.resumeAnimation()
-      graph.d3ReheatSimulation()
+    const restartTimer = window.setTimeout(() => {
+      graph.pauseAnimation()
+      graph.d3Force('radial', forceRadial(
+        (node) => node.id === 'me' ? 0 : ringRadius[node.circle as keyof typeof ringRadius],
+        0,
+        0,
+        0,
+      ))
+      graph.d3Force('orbit', createOrbitForce(0.0007))
+      if (!paused) {
+        graph.resumeAnimation()
+        graph.d3ReheatSimulation()
+      }
+    }, 50)
+    const fitTimer = window.setTimeout(() => graph.zoomToFit(400, 80), 1500)
+    return () => {
+      window.clearTimeout(restartTimer)
+      window.clearTimeout(fitTimer)
     }
-    const radial = forceRadial((node: { id: string; circle: number }) => node.id === 'me' ? 0 : ringRadius[node.circle as FriendCircle] ?? 80, 0, 0, 0)
-    graph.d3Force('radial', radial)
-    const timer = window.setTimeout(() => graph.zoomToFit(400, 80), 900)
-    return () => window.clearTimeout(timer)
-  }, [paused])
+  }, [paused, theme])
+
+  useEffect(() => {
+    if (!selectedId || graphSelectionRef.current) {
+      graphSelectionRef.current = false
+      return
+    }
+    const graph = graphRef.current
+    if (!graph) return
+    graph.cameraPosition({ x: 0, y: 0, z: 1200 }, { x: 0, y: 0, z: 0 }, 0)
+    const fitTimer = window.setTimeout(() => graph.zoomToFit(500, 80), 300)
+    return () => window.clearTimeout(fitTimer)
+  }, [selectedId])
 
   useEffect(() => {
     const graph = graphRef.current
@@ -122,10 +161,19 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
 
   const nodeThreeObject = (node: GraphNode) => {
     const friend = friendMap.get(node.id) ?? node
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nodeTexture(friend), transparent: true, opacity: activeIds && !activeIds.has(node.id) ? 0.18 : 1, depthWrite: false }))
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: nodeTexture(friend),
+      transparent: true,
+      depthWrite: false,
+      opacity: activeIds && !activeIds.has(node.id) ? 0.18 : 1,
+    }))
     const size = node.id === 'me' ? 30 : Math.max(10, 28 - Math.log2(node.circle) * 3)
     sprite.scale.set(size, size, 1)
     return sprite
+  }
+
+  if (!webglAvailable) {
+    return <div className="social-graph"><p className="social-webgl-message">Peng-yu needs WebGL</p></div>
   }
 
   return <div className={`social-graph ${theme === 'dark' ? 'social-dark' : 'social-light'}`}>
@@ -139,44 +187,15 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
       linkColor={(link) => contextColors[(link as GraphLink).context ?? 'other'] ?? contextColors.other}
       linkOpacity={activeIds ? 0.08 : 0.28}
       linkWidth={(link) => { const l = link as GraphLink; const source = typeof l.source === 'string' ? l.source : l.source.id; const target = typeof l.target === 'string' ? l.target : l.target.id; return activeIds && !activeIds.has(source) && !activeIds.has(target) ? 0.3 : 1 }}
-      onNodeClick={(node) => { const point = node as GraphNode; const id = point.id; if (id !== 'me') { onSelect(id); graphRef.current?.cameraPosition({ x: (point.x ?? 0) * 1.8, y: (point.y ?? 0) * 1.8, z: (point.z ?? 0) * 1.8 + 180 }, { x: point.x ?? 0, y: point.y ?? 0, z: point.z ?? 0 }, 1000) } }}
+      onNodeClick={(node) => { const point = node as GraphNode; const id = point.id; if (id !== 'me') { graphSelectionRef.current = true; onSelect(id); graphRef.current?.cameraPosition({ x: (point.x ?? 0) * 1.8, y: (point.y ?? 0) * 1.8, z: (point.z ?? 0) * 1.8 + 180 }, { x: point.x ?? 0, y: point.y ?? 0, z: point.z ?? 0 }, 1000) } }}
       onNodeHover={(node) => { setHoveredId((node as GraphNode | null)?.id ?? null); graphRef.current?.refresh() }}
       d3AlphaDecay={0}
       d3VelocityDecay={0.3}
       warmupTicks={80}
-      cooldownTicks={180}
-      onEngineTick={() => {
-        if (pausedRef.current) return
-        for (const node of nodes) {
-          if (node.id === 'me' || node.x === undefined || node.z === undefined) continue
-          const speed = 0.0007
-          const tangentX = -node.z * speed
-          const tangentZ = node.x * speed
-          node.vx = (node.vx ?? 0) + tangentX
-          node.vz = (node.vz ?? 0) + tangentZ
-        }
-      }}
+      cooldownTicks={Infinity}
+      enableNavigationControls
+      onEngineStop={() => graphRef.current?.zoomToFit(400, 80)}
     />
-    <svg className="social-fallback" viewBox="0 0 100 100" aria-label="Friends social graph">
-      {links.map((link, index) => {
-        const source = fallbackPositions.get(link.source)
-        const target = fallbackPositions.get(link.target)
-        if (!source || !target) return null
-        const active = !activeIds || activeIds.has(link.source) || activeIds.has(link.target)
-        return <line key={`${link.source}-${link.target}-${index}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke="currentColor" strokeOpacity={active ? 0.28 : 0.05} strokeWidth="0.12" />
-      })}
-      {nodes.map((node) => {
-        const position = fallbackPositions.get(node.id)
-        if (!position) return null
-        const friend = friendMap.get(node.id) ?? node
-        const active = !activeIds || activeIds.has(node.id)
-        const size = node.id === 'me' ? 1.8 : Math.max(0.65, 1.75 - Math.log2(node.circle) * 0.18)
-        return <g key={node.id} className={`social-fallback-node ${node.id === selectedId ? 'selected' : ''}`} opacity={active ? 1 : 0.18} onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)} onClick={() => node.id !== 'me' && onSelect(node.id)}>
-          <circle cx={position.x} cy={position.y} r={size} fill={contextColors[friend.contexts[0] ?? 'other']} />
-          <text x={position.x} y={position.y + 0.45} textAnchor="middle">{node.id === 'me' ? 'YOU' : initials(friend)}</text>
-        </g>
-      })}
-    </svg>
-    <button type="button" className="social-pause" onClick={() => { pausedRef.current = !paused; setPaused((value) => !value) }} aria-label={paused ? 'Resume graph' : 'Pause graph'}>{paused ? '▶' : 'Ⅱ'}</button>
+    <button type="button" className="social-pause" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume graph' : 'Pause graph'}>{paused ? '▶' : 'Ⅱ'}</button>
   </div>
 }

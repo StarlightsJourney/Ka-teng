@@ -41,6 +41,8 @@ function clusterForce(nodes: GraphNode[]) {
 
 export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGraph3DProps) {
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink>>()
+  const previousSelectedIdRef = useRef(selectedId)
+  const fittedLayerRef = useRef<boolean | null>(null)
   const graphData = useMemo<GraphData<GraphNode, GraphLink>>(
     () => ({ nodes: graph.nodes, links: graph.links }),
     [graph],
@@ -58,14 +60,29 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
   }, [graph])
 
   useEffect(() => {
+    const previousSelectedId = previousSelectedIdRef.current
+    previousSelectedIdRef.current = selectedId
+    if (previousSelectedId === selectedId) return
     const node = selectedId ? nodeById.get(selectedId) : undefined
     if (!node || !fgRef.current) return
+    const camera = fgRef.current.camera()
+    const direction = new THREE.Vector3()
+    camera.getWorldDirection(direction)
+    const target = new THREE.Vector3(node.x ?? 0, node.y ?? 0, node.z ?? 0)
+    const position = target.clone().sub(direction.multiplyScalar(120))
     fgRef.current.cameraPosition(
-      { x: (node.x ?? 0) + 80, y: (node.y ?? 0) + 80, z: (node.z ?? 0) + 180 },
-      { x: node.x ?? 0, y: node.y ?? 0, z: node.z ?? 0 },
+      { x: position.x, y: position.y, z: position.z },
+      { x: target.x, y: target.y, z: target.z },
       1000,
     )
   }, [nodeById, selectedId])
+
+  const handleEngineStop = () => {
+    const forceGraph = fgRef.current
+    if (!forceGraph || fittedLayerRef.current === layered) return
+    fittedLayerRef.current = layered
+    forceGraph.zoomToFit(800, 40)
+  }
 
   return (
     <ForceGraph3D
@@ -96,6 +113,7 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
         ? new THREE.LineDashedMaterial({ color: '#8b8f98', dashSize: 4, gapSize: 3 })
         : new THREE.LineBasicMaterial({ color: '#d4a054' })}
       onNodeClick={(node) => onSelect(node.id as string)}
+      onEngineStop={handleEngineStop}
       warmupTicks={80}
       cooldownTicks={180}
       enableNavigationControls

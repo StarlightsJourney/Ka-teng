@@ -33,7 +33,7 @@ export function TopBar(props: TopBarProps) {
       <button type="button" className="brand brand-button" onClick={props.onToggleMode} title={props.mode === 'ka-teng' ? 'Switch to Peng-yu' : 'Switch to Ka-teng'}>{props.mode === 'ka-teng' ? 'Ka-teng' : 'Peng-yu'}</button>
       <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} onSelect={props.onSearchSelect} onDismiss={props.onSearchDismiss} suggestions={props.suggestions} shortcut={props.shortcut} placeholder={props.placeholder} />
       <div className="toolbar">
-        {!props.hideShowAll && <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={props.onRequestShowAll}>
+        {!props.hideShowAll && <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} title={props.showAll ? 'Show less' : 'Show all'} aria-label={props.showAll ? 'Show less' : 'Show all'} onClick={props.onRequestShowAll}>
           {props.showAll ? 'Show less' : 'Show all'}
         </button>}
         <ThemeToggle theme={props.theme} onToggle={props.onThemeToggle} />

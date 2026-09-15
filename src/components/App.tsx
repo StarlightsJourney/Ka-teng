@@ -32,7 +32,8 @@ export function App() {
   const [friendSelectedId, setFriendSelectedId] = useState<string | null>(null)
   const [friendQuery, setFriendQuery] = useState('')
   const [showAllConfirming, setShowAllConfirming] = useState(false)
-  const [hasHiddenRelatives, setHasHiddenRelatives] = useState(false)
+  const [overviewNeedsRecentre, setOverviewNeedsRecentre] = useState(false)
+  const [recenterRequest, setRecenterRequest] = useState(0)
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
@@ -149,7 +150,8 @@ export function App() {
             onSelect={(id) => perform(selectPerson(id))}
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
-            onHiddenChange={setHasHiddenRelatives}
+            onOverviewChange={setOverviewNeedsRecentre}
+            recenterRequest={recenterRequest}
           /> : <SocialGraph3D friends={friendGraph.friends} links={friendGraph.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />}
         </div>
         {mode === 'ka-teng' && selected && <DetailsPanel
@@ -164,7 +166,7 @@ export function App() {
           onClose={() => perform(clearSelection())}
         />}
         {mode === 'peng-yu' && selectedFriend && <FriendPanel friend={selectedFriend} friends={friendGraph.friends} links={friendGraph.links} onSelect={setFriendSelectedId} onClose={() => setFriendSelectedId(null)} />}
-        {mode === 'ka-teng' && hasHiddenRelatives && !state.showAll && <button type="button" className="expand-pill" onClick={requestShowAll}>Expand · show the whole family</button>}
+        {mode === 'ka-teng' && state.showAll && overviewNeedsRecentre && <button type="button" className="expand-pill recenter-pill" onClick={() => setRecenterRequest((value) => value + 1)}>Re-centre · show the whole family</button>}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>
     </main>

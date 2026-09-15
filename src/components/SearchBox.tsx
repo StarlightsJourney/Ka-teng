@@ -19,7 +19,7 @@ export function SearchBox({ value, onChange, onSubmit }: SearchBoxProps) {
         onKeyDown={handleKeyDown}
         placeholder="Search people…"
       />
-      <kbd>Enter</kbd>
+      <kbd>⌘K</kbd>
     </label>
   )
 }

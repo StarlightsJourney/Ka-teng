@@ -70,7 +70,7 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
       .setCardHtml()
       .setStyle('rect')
       .setCardInnerHtmlCreator((datum) => cardInnerHtml(datum, peopleById))
-      .setCardDim({ w: 200, h: 56 })
+      .setCardDim({ w: 220, h: 60 })
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
 
     chart

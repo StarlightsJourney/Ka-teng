@@ -43,7 +43,7 @@ function readSceneColors(theme: ThemeMode) {
   return {
     background: styles.getPropertyValue('--bg').trim() || (theme === 'dark' ? '#0B0B0C' : '#F7F6F3'),
     line: styles.getPropertyValue('--line').trim() || '#9A9AA0',
-    accent: styles.getPropertyValue('--accent').trim() || '#FF6363',
+    ink: styles.getPropertyValue('--text').trim() || '#FFFFFF',
   }
 }
 
@@ -120,13 +120,13 @@ export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: F
         })
         return new THREE.Mesh(new THREE.SphereGeometry(selected ? 5.5 : 4, 16, 12), material)
       }}
-      linkColor={(link) => link.kind === 'spouse' ? sceneColors.line : sceneColors.accent}
+      linkColor={(link) => link.kind === 'spouse' ? sceneColors.line : sceneColors.ink}
       linkWidth={(link) => link.kind === 'spouse' ? 0.6 : 1.1}
       linkDirectionalArrowLength={(link) => link.kind === 'parent' ? 5 : 0}
       linkDirectionalArrowRelPos={0.9}
       linkMaterial={(link) => link.kind === 'spouse'
         ? new THREE.LineDashedMaterial({ color: sceneColors.line, dashSize: 4, gapSize: 3 })
-        : new THREE.LineBasicMaterial({ color: sceneColors.accent })}
+        : new THREE.LineBasicMaterial({ color: sceneColors.ink })}
       onNodeClick={(node) => onSelect(node.id as string)}
       onEngineStop={handleEngineStop}
       warmupTicks={80}

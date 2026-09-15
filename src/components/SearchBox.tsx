@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type FocusEvent } from 'react'
 import { displayInitials, fullName } from '../element'
 import type { Person } from '../element'
 
@@ -24,7 +24,19 @@ function HighlightedName({ person, query }: { person: Person; query: string }) {
 
 export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, shortcut, inputRef }: SearchBoxProps) {
   const [activeIndex, setActiveIndex] = useState(0)
+  const [dismissed, setDismissed] = useState(false)
+  const boxRef = useRef<HTMLLabelElement>(null)
   const selectedIndex = suggestions.length ? Math.min(activeIndex, suggestions.length - 1) : 0
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!boxRef.current?.contains(event.target as Node)) setDismissed(true)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [])
+  const handleBlur = (event: FocusEvent<HTMLLabelElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDismissed(true)
+  }
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' && suggestions.length) {
       event.preventDefault()
@@ -42,28 +54,21 @@ export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelec
     }
   }
   return (
-    <label className="search-box">
+    <label ref={boxRef} className="search-box" onBlur={handleBlur} onPointerDown={() => setDismissed(false)}>
       <span className="sr-only">Search people</span>
       <input
         ref={inputRef}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onFocus={() => setDismissed(false)}
         onKeyDown={handleKeyDown}
         placeholder="Search people…"
       />
       <kbd>{shortcut}</kbd>
-      {value.trim() && suggestions.length > 0 && (
+      {value.trim() && suggestions.length > 0 && !dismissed && (
         <div className="search-suggestions" role="listbox">
           {suggestions.map((person, index) => (
-            <button
-              key={person.id}
-              type="button"
-              className={index === selectedIndex ? 'active' : ''}
-              role="option"
-              aria-selected={index === selectedIndex}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onSelect(person.id)}
-            >
+            <button key={person.id} type="button" className={index === selectedIndex ? 'active' : ''} role="option" aria-selected={index === selectedIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(person.id)}>
               <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{person.avatar && <img src={person.avatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
               <span className="suggestion-name"><HighlightedName person={person} query={value} /></span>
             </button>

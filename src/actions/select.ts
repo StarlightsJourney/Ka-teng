@@ -4,6 +4,8 @@ import type { Action } from './types'
 export function selectPerson(id: PersonId): Action {
   return {
     name: `select:${id}`,
-    perform: (state) => state.peopleById.has(id) ? { ...state, selectedId: id } : state,
+    perform: (state) => state.peopleById.has(id)
+      ? { ...state, selectedId: id, expandedIds: new Set() }
+      : state,
   }
 }

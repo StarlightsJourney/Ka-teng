@@ -1,14 +1,11 @@
 import type { PersonId, PersonMap } from '../element'
 
-export type ViewMode = '2d' | '3d'
-
 export type AppState = {
   peopleById: PersonMap
   selectedId: PersonId | null
   query: string
-  view: ViewMode
-  layered: boolean
   showAll: boolean
+  expandedIds: ReadonlySet<PersonId>
 }
 
 export type Action = {

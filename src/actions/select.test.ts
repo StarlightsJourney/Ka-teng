@@ -8,9 +8,8 @@ const state: AppState = {
   ]),
   selectedId: null,
   query: '',
-  view: '2d',
-  layered: false,
   showAll: false,
+  expandedIds: new Set(),
 }
 
 describe('selectPerson', () => {

@@ -13,7 +13,9 @@ export function searchAndSelect(query: string): Action {
     name: 'search:select',
     perform: (state) => {
       const result = searchPeople(query, state.peopleById)[0]
-      return { ...state, query, selectedId: result?.id ?? state.selectedId }
+      return result
+        ? { ...state, query, selectedId: result.id, expandedIds: new Set() }
+        : { ...state, query }
     },
   }
 }

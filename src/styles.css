@@ -45,6 +45,7 @@ button { color: inherit; }
 .show-all-popover button:first-child, .person-edit-actions button[type='submit'] { border-color: var(--accent); color: var(--accent-fg); background: var(--accent); }
 .workspace { width: 100%; height: 100%; }
 .scene-panel { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; padding: 68px 16px 16px; background: var(--bg); }
+.family-chart-shell { position: relative; width: 100%; height: 100%; min-height: 0; }
 .family-chart-host { width: 100%; height: 100%; min-height: 0; color: var(--text); background: var(--bg); }
 .family-chart-host.f3 { --female-color: var(--female-ink); --male-color: var(--male-ink); --genderless-color: var(--text-3); --background-color: var(--bg); --text-color: var(--text); height: 100%; color: var(--text); background: var(--bg); font-family: Inter, "Inter Fallback", -apple-system, system-ui, sans-serif; }
 .family-chart-host.f3 div.card-rect { width: 220px; min-height: 60px; padding: 0; text-align: left; }
@@ -142,9 +143,10 @@ button { color: inherit; }
 .friend-mutuals button:hover { color: var(--link); }
 .friend-mutuals p { margin: 0; color: var(--text-3); font-size: 13px; }
 .navigation-hint { position: absolute; bottom: 12px; left: 50%; z-index: 3; padding: 4px 9px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); color: var(--text-4); background: var(--surface); font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
-.expand-pill { position: absolute; bottom: 40px; left: 50%; z-index: 3; padding: 7px 12px; border: 1px solid var(--accent); border-radius: var(--radius-pill); color: var(--accent-fg); background: var(--accent); box-shadow: var(--shadow-float); cursor: pointer; font-size: 12px; font-weight: 600; transform: translateX(-50%); white-space: nowrap; animation: expand-pill-pulse 2s ease-in-out infinite; }
-@keyframes expand-pill-pulse { 0%, 100% { opacity: .86; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.03); } }
-@media (prefers-reduced-motion: reduce) { .expand-pill { animation: none; } }
+.tree-overflow-toast { position: absolute; top: 8px; left: 50%; z-index: 8; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 24px); padding: 8px 10px 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-solid); box-shadow: var(--shadow-float); font-size: 12px; transform: translateX(-50%); pointer-events: auto; white-space: nowrap; }
+.tree-overflow-toast button { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-2); cursor: pointer; font-size: 11px; }
+.tree-overflow-toast button:hover { color: var(--text); background: var(--surface-3); }
+.tree-overflow-toast button.tree-overflow-close { padding: 0 4px; border: 0; color: var(--text-3); background: transparent; font-size: 16px; line-height: 18px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
   .top-bar { width: calc(100% - 24px); }

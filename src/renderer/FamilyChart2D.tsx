@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { select, zoomIdentity, zoomTransform, type ZoomBehavior, type ZoomTransform } from 'd3'
+import { useEffect, useRef, useState } from 'react'
+import { select, zoomIdentity, zoomTransform, type ZoomBehavior } from 'd3'
 import f3 from 'family-chart'
 import type { Data, TreeDatum } from 'family-chart'
 import 'family-chart/styles/family-chart.css'
@@ -17,19 +17,11 @@ type FamilyChart2DProps = {
   onSelect: (personId: string) => void
   onExpand: (personId: string) => void
   onEdit: (personId: string) => void
-  onOverviewChange: (needsRecentre: boolean) => void
-  recenterRequest: number
 }
 
 type ZoomListener = SVGSVGElement & {
   __zoomObj?: ZoomBehavior<SVGSVGElement, unknown>
 }
-type ViewSnapshot = {
-  mainId: string | null
-  expandedIds: ReadonlySet<string>
-  transform: ZoomTransform
-}
-
 type RenderedTree = {
   data: Array<{ id?: string; x: number; y: number; data?: { id?: string; _ktHidden?: number } }>
 }
@@ -39,6 +31,7 @@ function centerVisibleTree(
   panelOpen: boolean,
   transitionTime: number,
   mainId?: string | null,
+  keepZoom = false,
 ): void {
   const svg = chart.svg as ZoomListener
   const listener = (svg.__zoomObj ? svg : svg.parentNode) as ZoomListener | null
@@ -65,12 +58,14 @@ function centerVisibleTree(
     (availableWidth - 80) / treeWidth,
     (availableHeight - 80) / treeHeight,
   )
-  const scale = Number.isFinite(rawFitScale) && rawFitScale > 0
-    ? Math.min(1.25, Math.max(0.85, rawFitScale))
-    : current.k
+  const scale = keepZoom
+    ? current.k
+    : Number.isFinite(rawFitScale) && rawFitScale > 0
+      ? Math.min(1.25, Math.max(0.85, rawFitScale))
+      : current.k
   const main = tree.data.find((datum) => datum.id === mainId || datum.data?.id === mainId) ?? tree.data[0]
-  const treeCenterX = rawFitScale < 0.85 && main ? main.x : (minX + maxX) / 2
-  const treeCenterY = rawFitScale < 0.85 && main ? main.y : (minY + maxY) / 2
+  const treeCenterX = !keepZoom && rawFitScale < 0.85 && main ? main.x : (keepZoom && main ? main.x : (minX + maxX) / 2)
+  const treeCenterY = !keepZoom && rawFitScale < 0.85 && main ? main.y : (keepZoom && main ? main.y : (minY + maxY) / 2)
   const target = zoomIdentity
     .translate(targetCenterX - treeCenterX * scale, targetCenterY - treeCenterY * scale)
     .scale(scale)
@@ -133,7 +128,7 @@ function cardInnerHtml(
   </div>`
 }
 
-export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit, onOverviewChange, recenterRequest }: FamilyChart2DProps) {
+export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -146,19 +141,21 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   const showAllRef = useRef(showAll)
   const previousShowAllRef = useRef(showAll)
   const lastSelectionUpdateRef = useRef(0)
-  const onOverviewChangeRef = useRef(onOverviewChange)
-  const overviewSnapshotRef = useRef<ViewSnapshot | null>(null)
+  const [overflowToast, setOverflowToast] = useState(false)
+  const [zoomedOut, setZoomedOut] = useState(false)
+  const dismissedToastRef = useRef(false)
+  const zoomedOutRef = useRef(false)
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
   useEffect(() => {
     onExpandRef.current = onExpand
     onEditRef.current = onEdit
-    onOverviewChangeRef.current = onOverviewChange
     expandedIdsRef.current = expandedIds
     showAllRef.current = showAll
     selectedIdRef.current = selectedId
-  }, [expandedIds, onEdit, onExpand, onOverviewChange, selectedId, showAll])
+    zoomedOutRef.current = zoomedOut
+  }, [expandedIds, onEdit, onExpand, selectedId, showAll, zoomedOut])
 
   useEffect(() => {
     peopleRef.current = people
@@ -213,15 +210,11 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       const svg = chart.svg as ZoomListener
       return (svg.__zoomObj ? svg : svg.parentNode) as ZoomListener | null
     }
-    const notifyOverview = () => {
+    const checkOverflow = () => {
       const tree = chart.store.getTree() as RenderedTree | undefined
       const listener = getZoomTarget()
       const zoom = listener?.__zoomObj
       if (!tree?.data?.length || !listener || !zoom) return
-      if (!showAllRef.current) {
-        onOverviewChangeRef.current(false)
-        return
-      }
       const rect = chart.svg.getBoundingClientRect()
       const current = zoomTransform(listener)
       const xs = tree.data.map((datum) => datum.x * current.k + current.x)
@@ -230,20 +223,20 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       const maxX = Math.max(...xs) + 110 * current.k
       const minY = Math.min(...ys) - 30 * current.k
       const maxY = Math.max(...ys) + 30 * current.k
-      const visibleWidth = Math.max(0, Math.min(maxX, rect.width) - Math.max(minX, 0))
-      const visibleHeight = Math.max(0, Math.min(maxY, rect.height) - Math.max(minY, 0))
-      const totalArea = Math.max(1, (maxX - minX) * (maxY - minY))
-      const visibleRatio = (visibleWidth * visibleHeight) / totalArea
-      const selected = tree.data.find((datum) => datum.id === selectedIdRef.current || datum.data?.id === selectedIdRef.current)
-      const selectedX = selected ? selected.x * current.k + current.x : 0
-      const selectedY = selected ? selected.y * current.k + current.y : 0
-      const selectedOffscreen = Boolean(selected && (selectedX < 0 || selectedX > rect.width || selectedY < 0 || selectedY > rect.height))
-      onOverviewChangeRef.current(visibleRatio < 0.6 || selectedOffscreen)
+      const fits = minX >= 0 && maxX <= rect.width && minY >= 0 && maxY <= rect.height
+      if (zoomedOutRef.current || dismissedToastRef.current) return
+      setOverflowToast(!fits)
     }
     const updateCenteredTree = (transitionTime = 0) => {
       chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-      if (!showAllRef.current) centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime, selectedIdRef.current ?? defaultMainId)
-      notifyOverview()
+      centerVisibleTree(
+        chart,
+        Boolean(selectedIdRef.current),
+        transitionTime,
+        selectedIdRef.current ?? defaultMainId,
+        showAllRef.current && !zoomedOutRef.current,
+      )
+      window.setTimeout(checkOverflow, transitionTime + 20)
     }
     const resizeChart = () => {
       const currentChart = chartRef.current
@@ -254,12 +247,12 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     resizeObserver?.observe(container)
     window.addEventListener('resize', resizeChart)
     const zoomTarget = getZoomTarget()
-    const overviewTimer = { current: 0 as number | undefined }
-    const scheduleOverview = () => {
-      window.clearTimeout(overviewTimer.current)
-      overviewTimer.current = window.setTimeout(notifyOverview, 150)
+    const overflowTimer = { current: 0 as number | undefined }
+    const scheduleOverflowCheck = () => {
+      window.clearTimeout(overflowTimer.current)
+      overflowTimer.current = window.setTimeout(checkOverflow, 150)
     }
-    if (zoomTarget) select(zoomTarget).on('zoom.kt-overview', scheduleOverview)
+    if (zoomTarget) select(zoomTarget).on('zoom.kt-overflow', scheduleOverflowCheck)
     const handleMoreClick = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof HTMLElement)) return
@@ -275,12 +268,12 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     container.addEventListener('click', handleMoreClick, true)
     chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chart.updateTree({ initial: true, tree_position: 'fit' })
-    notifyOverview()
+    window.setTimeout(checkOverflow, 20)
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
       window.clearTimeout(fitTimer)
-      window.clearTimeout(overviewTimer.current)
-      if (zoomTarget) select(zoomTarget).on('zoom.kt-overview', null)
+      window.clearTimeout(overflowTimer.current)
+      if (zoomTarget) select(zoomTarget).on('zoom.kt-overflow', null)
       resizeObserver?.disconnect()
       window.removeEventListener('resize', resizeChart)
       container.removeEventListener('click', handleMoreClick, true)
@@ -291,64 +284,72 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
 
   useEffect(() => {
     if (!chartRef.current) return
-    if (showAllRef.current) return
     const transitionTime = 650
     chartRef.current.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-    centerVisibleTree(chartRef.current, Boolean(selectedIdRef.current), transitionTime, selectedIdRef.current ?? defaultMainId)
+    centerVisibleTree(
+      chartRef.current,
+      Boolean(selectedIdRef.current),
+      transitionTime,
+      selectedIdRef.current ?? defaultMainId,
+      showAllRef.current && !zoomedOutRef.current,
+    )
   }, [defaultMainId, expandedIds])
 
   useEffect(() => {
     if (!chartRef.current || previousShowAllRef.current === showAll) return
     const chart = chartRef.current
     const transitionTime = 650
-    if (showAll) {
-      const svg = chart.svg as ZoomListener
-      const listener = (svg.__zoomObj ? svg : svg.parentNode) as ZoomListener | null
-      if (listener) {
-        overviewSnapshotRef.current = {
-          mainId: selectedIdRef.current ?? defaultMainId,
-          expandedIds: new Set(expandedIdsRef.current),
-          transform: zoomTransform(listener),
-        }
-      }
-      chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
-      chart.updateTree({ tree_position: 'fit', transition_time: transitionTime })
-    } else {
-      const snapshot = overviewSnapshotRef.current
-      const canRestore = snapshot && snapshot.mainId === selectedIdRef.current
-      chart.updateMainId(canRestore ? snapshot.mainId ?? defaultMainId ?? '' : selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
-      chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-      if (canRestore) {
-        window.setTimeout(() => {
-          const svg = chart.svg as ZoomListener
-          const listener = (svg.__zoomObj ? svg : svg.parentNode) as ZoomListener | null
-          const zoom = listener?.__zoomObj
-          if (listener && zoom && snapshot) {
-            select(listener).interrupt().transition().duration(transitionTime).call(zoom.transform, snapshot.transform)
-          }
-        }, transitionTime + 50)
-      } else {
-        centerVisibleTree(chart, Boolean(selectedIdRef.current), transitionTime, selectedIdRef.current ?? defaultMainId)
-      }
-    }
+    setZoomedOut(false)
+    dismissedToastRef.current = false
+    setOverflowToast(false)
+    chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
+    chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })
+    centerVisibleTree(
+      chart,
+      Boolean(selectedIdRef.current),
+      transitionTime,
+      selectedIdRef.current ?? defaultMainId,
+      showAll,
+    )
     previousShowAllRef.current = showAll
   }, [defaultMainId, showAll])
 
   useEffect(() => {
-    if (!chartRef.current || !showAll || recenterRequest === 0) return
-    chartRef.current.updateTree({ tree_position: 'fit', transition_time: 650 })
-  }, [recenterRequest, showAll])
-
-  useEffect(() => {
     if (!chartRef.current) return
-    if (showAllRef.current) return
     const now = performance.now()
     const transitionTime = now - lastSelectionUpdateRef.current < 650 ? 0 : 650
     const mainId = selectedId ?? defaultMainId ?? peopleRef.current[0]?.id ?? ''
+    setZoomedOut(false)
+    dismissedToastRef.current = false
+    setOverflowToast(false)
     chartRef.current.updateMainId(mainId).updateTree({ tree_position: 'inherit', transition_time: transitionTime })
-    centerVisibleTree(chartRef.current, Boolean(selectedId), transitionTime, mainId)
+    centerVisibleTree(chartRef.current, Boolean(selectedId), transitionTime, mainId, false)
     lastSelectionUpdateRef.current = now
   }, [defaultMainId, selectedId])
 
-  return <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
+  const fitWholeTree = () => {
+    if (!chartRef.current) return
+    setZoomedOut(true)
+    setOverflowToast(true)
+    dismissedToastRef.current = false
+    chartRef.current.updateTree({ tree_position: 'fit', transition_time: 650 })
+  }
+  const returnToNormal = () => {
+    if (!chartRef.current) return
+    setZoomedOut(false)
+    setOverflowToast(false)
+    dismissedToastRef.current = false
+    chartRef.current.updateTree({ tree_position: 'inherit', transition_time: 650 })
+    centerVisibleTree(chartRef.current, Boolean(selectedIdRef.current), 650, selectedIdRef.current ?? defaultMainId, false)
+  }
+
+  return <div className="family-chart-shell">
+    <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
+    {overflowToast && <div className="tree-overflow-toast" role="status">
+      <button type="button" className="tree-overflow-close" aria-label="Dismiss" onClick={() => { dismissedToastRef.current = true; setOverflowToast(false) }}>×</button>
+      <span>The tree is larger than your view</span>
+      {!zoomedOut && <button type="button" onClick={fitWholeTree}>See whole tree</button>}
+      <button type="button" onClick={returnToNormal}>Back to normal</button>
+    </div>}
+  </div>
 }

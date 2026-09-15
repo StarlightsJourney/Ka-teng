@@ -15,7 +15,7 @@ type SocialGraph3DProps = {
   onSelect: (id: string) => void
 }
 
-type GraphNode = Friend & { x?: number; y?: number; z?: number; vx?: number; vy?: number; vz?: number; fx?: number; fy?: number; fz?: number }
+type GraphNode = Friend & { x?: number; y?: number; z?: number; vx?: number; vy?: number; vz?: number; fx?: number; fy?: number; fz?: number; ringTarget?: number; angleTarget?: number }
 type GraphLink = Omit<FriendLink, 'source' | 'target'> & { source: string | GraphNode; target: string | GraphNode }
 type GraphRef = {
   d3Force: (name: string, force?: unknown) => unknown
@@ -60,6 +60,12 @@ type ClusterForce = ((alpha: number) => void) & {
   initialize: (nodes: GraphNode[]) => void
 }
 type CollideForce = ((alpha: number) => void) & {
+  initialize: (nodes: GraphNode[]) => void
+}
+type RingConstraint = (() => void) & {
+  initialize: (nodes: GraphNode[]) => void
+}
+type SectorConstraint = (() => void) & {
   initialize: (nodes: GraphNode[]) => void
 }
 
@@ -124,25 +130,69 @@ function createCollideForce(): CollideForce {
   return force
 }
 
-function hashSeed(value: string): number {
-  let hash = 2166136261
-  for (const character of value) {
-    hash ^= character.charCodeAt(0)
-    hash = Math.imul(hash, 16777619)
-  }
-  return (hash >>> 0) / 4294967296
+function createRingConstraint(): RingConstraint {
+  let simulationNodes: GraphNode[] = []
+  const force = (() => {
+    for (const node of simulationNodes) {
+      if (node.id === 'me') continue
+      const target = node.ringTarget ?? ringRadius[node.circle]
+      const radius = Math.hypot(node.x ?? 0, node.z ?? 0)
+      if (radius === 0) continue
+      const scale = target / radius
+      const x = (node.x ?? 0) * scale
+      const z = (node.z ?? 0) * scale
+      const radialVelocity = ((node.vx ?? 0) * x + (node.vz ?? 0) * z) / (target * target)
+      Object.assign(node, {
+        x,
+        y: 0,
+        z,
+        vy: 0,
+        vx: (node.vx ?? 0) - radialVelocity * x,
+        vz: (node.vz ?? 0) - radialVelocity * z,
+      })
+    }
+  }) as unknown as RingConstraint
+  force.initialize = (nextNodes) => { simulationNodes = nextNodes }
+  return force
 }
 
-function seededPosition(friend: Friend, contexts: string[]): { x: number; y: number; z: number } {
+function createSectorConstraint(): SectorConstraint {
+  let simulationNodes: GraphNode[] = []
+  const startedAt = performance.now()
+  const force = (() => {
+    const elapsed = (performance.now() - startedAt) / 1000
+    for (const node of simulationNodes) {
+      if (node.id === 'me') continue
+      const target = node.ringTarget ?? ringRadius[node.circle]
+      const baseAngle = node.angleTarget ?? Math.atan2(node.z ?? 0, node.x ?? 0)
+      const angularSpeed = 0.0012 * (80 / target)
+      const angle = baseAngle + elapsed * angularSpeed
+      const tangentialSpeed = target * angularSpeed
+      Object.assign(node, {
+        x: target * Math.cos(angle),
+        y: 0,
+        z: target * Math.sin(angle),
+        vy: 0,
+        vx: -Math.sin(angle) * tangentialSpeed,
+        vz: Math.cos(angle) * tangentialSpeed,
+      })
+    }
+  }) as unknown as SectorConstraint
+  force.initialize = (nextNodes) => { simulationNodes = nextNodes }
+  return force
+}
+
+function seededPosition(friend: Friend, contexts: string[], index: number, count: number): { x: number; y: number; z: number; ringTarget: number; angleTarget: number } {
   const radius = ringRadius[friend.circle]
-  const sector = (contexts.indexOf(friend.contexts[0] ?? 'other') + 0.5) * Math.PI * 2 / Math.max(1, contexts.length)
-  const jitter = (hashSeed(`${friend.id}:angle`) - 0.5) * Math.PI * 2 / Math.max(1, contexts.length) * 0.45
-  const theta = sector + jitter
-  const radiusJitter = radius * (0.96 + hashSeed(`${friend.id}:radius`) * 0.08)
+  const sectorWidth = Math.PI * 2 / Math.max(1, contexts.length)
+  const sectorStart = contexts.indexOf(friend.contexts[0] ?? 'other') * sectorWidth
+  const theta = sectorStart + ((index + 1) / (count + 1)) * sectorWidth
   return {
-    x: radiusJitter * Math.cos(theta),
+    x: radius * Math.cos(theta),
     y: 0,
-    z: radiusJitter * Math.sin(theta),
+    z: radius * Math.sin(theta),
+    ringTarget: radius,
+    angleTarget: theta,
   }
 }
 
@@ -172,13 +222,13 @@ function supportsWebGL(): boolean {
 }
 
 const contextColors: Record<string, string> = {
-  work: '#8B9DC3',
-  university: '#B49FCC',
-  travel: '#7FAFA4',
-  childhood: '#D6A77A',
-  online: '#9D9AC4',
-  'family friend': '#C58FA0',
-  other: '#9A9A9A',
+  work: '#4C82CF',
+  university: '#9A57C5',
+  travel: '#209A7D',
+  childhood: '#D9782D',
+  online: '#7058C6',
+  'family friend': '#C84570',
+  other: '#68717D',
 }
 function initials(friend: Friend): string {
   return `${friend.firstName[0] ?? ''}${friend.lastName[0] ?? ''}`.toUpperCase()
@@ -188,7 +238,7 @@ function nodeSize(node: GraphNode): number {
   return node.id === 'me' ? 48 : ({ 5: 40, 15: 34, 50: 28, 150: 22, 500: 16 }[node.circle] ?? 20)
 }
 
-function nodeTexture(friend: Friend, showLabel: boolean): THREE.CanvasTexture {
+function nodeTexture(friend: Friend, showLabel: boolean, theme: ThemeMode): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 320
@@ -199,8 +249,8 @@ function nodeTexture(friend: Friend, showLabel: boolean): THREE.CanvasTexture {
   context.clip()
   context.fillStyle = contextColors[friend.contexts[0] ?? 'other'] ?? contextColors.other
   context.fillRect(8, 8, 240, 240)
-  context.strokeStyle = '#344054'
-  context.lineWidth = 5
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 4
   context.stroke()
   context.fillStyle = '#ffffff'
   context.font = '600 42px Inter, sans-serif'
@@ -209,7 +259,8 @@ function nodeTexture(friend: Friend, showLabel: boolean): THREE.CanvasTexture {
   context.fillText(initials(friend), 128, 128)
   context.restore()
   if (showLabel) {
-    context.font = '600 24px Inter, sans-serif'
+    context.font = '600 84px Inter, sans-serif'
+    context.fillStyle = theme === 'dark' ? '#F5F5F7' : '#17191D'
     context.fillText(friend.firstName, 128, 285)
   }
   return new THREE.CanvasTexture(canvas)
@@ -227,10 +278,21 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     () => [...new Set(friends.flatMap((friend) => friend.contexts.map((context) => context || 'other')))].sort(),
     [friends],
   )
-  const nodes = useMemo<GraphNode[]>(() => [
-    { id: 'me', firstName: 'You', lastName: '', circle: 5, contexts: [], fx: 0, fy: 0, fz: 0 },
-    ...friends.map((friend) => ({ ...friend, ...seededPosition(friend, contexts), fy: 0 })),
-  ], [contexts, friends])
+  const nodes = useMemo<GraphNode[]>(() => {
+    const contextMembers = new Map<string, Friend[]>()
+    friends.forEach((friend) => {
+      const context = friend.contexts[0] ?? 'other'
+      contextMembers.set(context, [...(contextMembers.get(context) ?? []), friend])
+    })
+    contextMembers.forEach((members) => members.sort((a, b) => a.id.localeCompare(b.id)))
+    return [
+      { id: 'me', firstName: 'You', lastName: '', circle: 5, contexts: [], fx: 0, fy: 0, fz: 0 },
+      ...friends.map((friend) => {
+        const members = contextMembers.get(friend.contexts[0] ?? 'other') ?? [friend]
+        return { ...friend, ...seededPosition(friend, contexts, members.indexOf(friend), members.length), fy: 0 }
+      }),
+    ]
+  }, [contexts, friends])
   const graphData = useMemo<GraphData<GraphNode, GraphLink>>(() => ({ nodes, links: links as GraphLink[] }), [links, nodes])
   const activeIds = useMemo(() => {
     const focusId = hoveredId ?? selectedId
@@ -252,12 +314,14 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
         0,
         0,
       ) as typeof forceRadial extends (...args: never[]) => infer Result ? Result & { strength?: (value: number) => Result } : never
-      radial.strength?.(0.9)
+      radial.strength?.(1)
       graph.d3Force('center', null)
       graph.d3Force('radial', radial)
       graph.d3Force('orbit', createOrbitForce())
-      graph.d3Force('cluster', createClusterForce(0.05))
+      graph.d3Force('cluster', createClusterForce(0.005))
       graph.d3Force('collide', createCollideForce())
+      graph.d3Force('ring', createRingConstraint())
+      graph.d3Force('sector', createSectorConstraint())
       const charge = graph.d3Force('charge') as { strength?: (value: number) => void; distanceMax?: (value: number) => void } | undefined
       charge?.strength?.(-40)
       charge?.distanceMax?.(700)
@@ -272,8 +336,8 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     const fitTimer = cameraInitializedRef.current
       ? undefined
       : window.setTimeout(() => {
-        graph.zoomToFit(500, 80)
-        graph.cameraPosition({ x: 0, y: 300, z: 1100 }, { x: 0, y: 0, z: 0 }, 0)
+        graph.cameraPosition({ x: 0, y: 900, z: 630 }, { x: 0, y: 0, z: 0 }, 0)
+        graph.zoomToFit(500, 60)
         cameraInitializedRef.current = true
       }, 700)
     return () => {
@@ -313,7 +377,7 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     const friend = friendMap.get(node.id) ?? node
     const showLabel = node.id === 'me' || node.circle <= 50 || hoveredId === node.id || selectedId === node.id
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: nodeTexture(friend, showLabel),
+      map: nodeTexture(friend, showLabel, theme),
       transparent: true,
       depthWrite: false,
       opacity: activeIds && !activeIds.has(node.id) ? 0.25 : 1,

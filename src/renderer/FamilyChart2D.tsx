@@ -58,8 +58,8 @@ function centerVisibleTree(
   const isSmallScreen = window.innerWidth <= 720
   const availableWidth = Math.max(0, svgRect.width - (!isSmallScreen && panelOpen ? 336 : 0))
   const availableHeight = Math.max(0, svgRect.height - (isSmallScreen && panelOpen ? svgRect.height * 0.45 : 0))
-  const targetCenterX = (availableWidth || svgRect.width) / 2
-  const targetCenterY = (availableHeight || svgRect.height) / 2
+  const targetCenterX = svgRect.left + (availableWidth || svgRect.width) / 2
+  const targetCenterY = svgRect.top + (availableHeight || svgRect.height) / 2
   const current = zoomTransform(listener)
   const rawFitScale = Math.min(
     (availableWidth - 80) / treeWidth,

@@ -15,7 +15,7 @@ type SocialGraph3DProps = {
   onSelect: (id: string) => void
 }
 
-type GraphNode = Friend & { x?: number; y?: number; z?: number; vx?: number; vy?: number; vz?: number; fx?: number; fy?: number; fz?: number; ringTarget?: number; angleTarget?: number }
+type GraphNode = Friend & { x?: number; y?: number; z?: number; vx?: number; vy?: number; vz?: number; fx?: number; fy?: number; fz?: number }
 type GraphLink = Omit<FriendLink, 'source' | 'target'> & { source: string | GraphNode; target: string | GraphNode }
 type GraphRef = {
   d3Force: (name: string, force?: unknown) => unknown
@@ -33,39 +33,10 @@ type OrbitForce = ((alpha: number) => void) & {
   initialize: (nodes: GraphNode[]) => void
 }
 
-function createOrbitForce(): OrbitForce {
-  let simulationNodes: GraphNode[] = []
-  const force = (() => {
-    for (const node of simulationNodes) {
-      if (node.id === 'me' || node.x === undefined || node.z === undefined) continue
-      const radiusSquared = node.x ** 2 + node.z ** 2
-      if (radiusSquared === 0) continue
-      const radialVelocity = ((node.vx ?? 0) * node.x + (node.vz ?? 0) * node.z) / radiusSquared
-      const radius = Math.sqrt(radiusSquared)
-      const tangentialSpeed = 0.0012 * (80 / ringRadius[node.circle]) * radius
-      Object.assign(node, {
-        vx: (node.vx ?? 0) - radialVelocity * node.x - (node.z / radius) * tangentialSpeed,
-        vy: 0,
-        vz: (node.vz ?? 0) - radialVelocity * node.z + (node.x / radius) * tangentialSpeed,
-      })
-    }
-  }) as unknown as OrbitForce
-  force.initialize = (nextNodes) => {
-    simulationNodes = nextNodes
-  }
-  return force
-}
-
 type ClusterForce = ((alpha: number) => void) & {
   initialize: (nodes: GraphNode[]) => void
 }
 type CollideForce = ((alpha: number) => void) & {
-  initialize: (nodes: GraphNode[]) => void
-}
-type RingConstraint = (() => void) & {
-  initialize: (nodes: GraphNode[]) => void
-}
-type SectorConstraint = (() => void) & {
   initialize: (nodes: GraphNode[]) => void
 }
 
@@ -75,7 +46,7 @@ function createClusterForce(strength: number): ClusterForce {
     const groups = new Map<string, GraphNode[]>()
     for (const node of simulationNodes) {
       if (node.id === 'me') continue
-      const key = node.contexts[0] ?? 'other'
+      const key = `${node.circle}:${node.contexts[0] ?? 'other'}`
       groups.set(key, [...(groups.get(key) ?? []), node])
     }
     for (const group of groups.values()) {
@@ -83,16 +54,18 @@ function createClusterForce(strength: number): ClusterForce {
       const centroid = group.reduce(
         (sum, node) => ({
           x: sum.x + (node.x ?? 0),
+          y: sum.y + (node.y ?? 0),
           z: sum.z + (node.z ?? 0),
         }),
-        { x: 0, z: 0 },
+        { x: 0, y: 0, z: 0 },
       )
       centroid.x /= group.length
+      centroid.y /= group.length
       centroid.z /= group.length
       for (const node of group) {
         Object.assign(node, {
           vx: (node.vx ?? 0) + (centroid.x - (node.x ?? 0)) * strength * alpha * 0.01,
-          vy: 0,
+          vy: (node.vy ?? 0) + (centroid.y - (node.y ?? 0)) * strength * alpha * 0.01,
           vz: (node.vz ?? 0) + (centroid.z - (node.z ?? 0)) * strength * alpha * 0.01,
         })
       }
@@ -112,16 +85,20 @@ function createCollideForce(): CollideForce {
         const second = simulationNodes[otherIndex]
         if (second.id === 'me') continue
         const dx = (second.x ?? 0) - (first.x ?? 0)
+        const dy = (second.y ?? 0) - (first.y ?? 0)
         const dz = (second.z ?? 0) - (first.z ?? 0)
-        const distance = Math.hypot(dx, dz) || 0.001
-        const minimum = nodeSize(first) / 2 + nodeSize(second) / 2 + 8
+        const distance = Math.hypot(dx, dy, dz) || 0.001
+        const minimum = 14
         if (distance >= minimum) continue
         const push = (minimum - distance) / distance * 0.5
         const x = dx * push
+        const y = dy * push
         const z = dz * push
         first.vx = (first.vx ?? 0) - x
+        first.vy = (first.vy ?? 0) - y
         first.vz = (first.vz ?? 0) - z
         second.vx = (second.vx ?? 0) + x
+        second.vy = (second.vy ?? 0) + y
         second.vz = (second.vz ?? 0) + z
       }
     }
@@ -130,69 +107,35 @@ function createCollideForce(): CollideForce {
   return force
 }
 
-function createRingConstraint(): RingConstraint {
+function createDriftForce(): OrbitForce {
   let simulationNodes: GraphNode[] = []
   const force = (() => {
     for (const node of simulationNodes) {
       if (node.id === 'me') continue
-      const target = node.ringTarget ?? ringRadius[node.circle]
-      const radius = Math.hypot(node.x ?? 0, node.z ?? 0)
-      if (radius === 0) continue
-      const scale = target / radius
-      const x = (node.x ?? 0) * scale
-      const z = (node.z ?? 0) * scale
-      const radialVelocity = ((node.vx ?? 0) * x + (node.vz ?? 0) * z) / (target * target)
+      const x = node.x ?? 0
+      const z = node.z ?? 0
+      const radius = Math.hypot(x, z) || ringRadius[node.circle]
+      const angularSpeed = 0.0012 * (80 / ringRadius[node.circle])
       Object.assign(node, {
-        x,
-        y: 0,
-        z,
-        vy: 0,
-        vx: (node.vx ?? 0) - radialVelocity * x,
-        vz: (node.vz ?? 0) - radialVelocity * z,
+        vx: (node.vx ?? 0) - z / radius * angularSpeed * radius,
+        vy: (node.vy ?? 0) + (Math.random() - 0.5) * 0.3,
+        vz: (node.vz ?? 0) + x / radius * angularSpeed * radius,
       })
     }
-  }) as unknown as RingConstraint
+  }) as unknown as OrbitForce
   force.initialize = (nextNodes) => { simulationNodes = nextNodes }
   return force
 }
 
-function createSectorConstraint(): SectorConstraint {
-  let simulationNodes: GraphNode[] = []
-  const startedAt = performance.now()
-  const force = (() => {
-    const elapsed = (performance.now() - startedAt) / 1000
-    for (const node of simulationNodes) {
-      if (node.id === 'me') continue
-      const target = node.ringTarget ?? ringRadius[node.circle]
-      const baseAngle = node.angleTarget ?? Math.atan2(node.z ?? 0, node.x ?? 0)
-      const angularSpeed = 0.0012 * (80 / target)
-      const angle = baseAngle + elapsed * angularSpeed
-      const tangentialSpeed = target * angularSpeed
-      Object.assign(node, {
-        x: target * Math.cos(angle),
-        y: 0,
-        z: target * Math.sin(angle),
-        vy: 0,
-        vx: -Math.sin(angle) * tangentialSpeed,
-        vz: Math.cos(angle) * tangentialSpeed,
-      })
-    }
-  }) as unknown as SectorConstraint
-  force.initialize = (nextNodes) => { simulationNodes = nextNodes }
-  return force
-}
-
-function seededPosition(friend: Friend, contexts: string[], index: number, count: number): { x: number; y: number; z: number; ringTarget: number; angleTarget: number } {
+function seededPosition(friend: Friend, index: number, count: number): { x: number; y: number; z: number } {
   const radius = ringRadius[friend.circle]
-  const sectorWidth = Math.PI * 2 / Math.max(1, contexts.length)
-  const sectorStart = contexts.indexOf(friend.contexts[0] ?? 'other') * sectorWidth
-  const theta = sectorStart + ((index + 1) / (count + 1)) * sectorWidth
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+  const phi = Math.acos(1 - 2 * ((index + 0.5) / count))
+  const theta = goldenAngle * index
   return {
-    x: radius * Math.cos(theta),
-    y: 0,
-    z: radius * Math.sin(theta),
-    ringTarget: radius,
-    angleTarget: theta,
+    x: radius * Math.sin(phi) * Math.cos(theta),
+    y: radius * Math.cos(phi),
+    z: radius * Math.sin(phi) * Math.sin(theta),
   }
 }
 
@@ -274,25 +217,20 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [webglAvailable] = useState(() => typeof document === 'undefined' || supportsWebGL())
   const friendMap = useMemo(() => new Map(friends.map((friend) => [friend.id, friend])), [friends])
-  const contexts = useMemo(
-    () => [...new Set(friends.flatMap((friend) => friend.contexts.map((context) => context || 'other')))].sort(),
-    [friends],
-  )
   const nodes = useMemo<GraphNode[]>(() => {
-    const contextMembers = new Map<string, Friend[]>()
+    const ringMembers = new Map<number, Friend[]>()
     friends.forEach((friend) => {
-      const context = friend.contexts[0] ?? 'other'
-      contextMembers.set(context, [...(contextMembers.get(context) ?? []), friend])
+      ringMembers.set(friend.circle, [...(ringMembers.get(friend.circle) ?? []), friend])
     })
-    contextMembers.forEach((members) => members.sort((a, b) => a.id.localeCompare(b.id)))
+    ringMembers.forEach((members) => members.sort((a, b) => a.id.localeCompare(b.id)))
     return [
       { id: 'me', firstName: 'You', lastName: '', circle: 5, contexts: [], fx: 0, fy: 0, fz: 0 },
       ...friends.map((friend) => {
-        const members = contextMembers.get(friend.contexts[0] ?? 'other') ?? [friend]
-        return { ...friend, ...seededPosition(friend, contexts, members.indexOf(friend), members.length), fy: 0 }
+        const members = ringMembers.get(friend.circle) ?? [friend]
+        return { ...friend, ...seededPosition(friend, members.indexOf(friend), members.length) }
       }),
     ]
-  }, [contexts, friends])
+  }, [friends])
   const graphData = useMemo<GraphData<GraphNode, GraphLink>>(() => ({ nodes, links: links as GraphLink[] }), [links, nodes])
   const activeIds = useMemo(() => {
     const focusId = hoveredId ?? selectedId
@@ -305,7 +243,7 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     if (!graph) return
     const controls = graph.controls() as { autoRotate: boolean; autoRotateSpeed: number }
     controls.autoRotate = !paused
-    controls.autoRotateSpeed = 0.6
+    controls.autoRotateSpeed = 0.4
     const restartTimer = window.setTimeout(() => {
       graph.pauseAnimation()
       const radial = forceRadial(
@@ -314,20 +252,18 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
         0,
         0,
       ) as typeof forceRadial extends (...args: never[]) => infer Result ? Result & { strength?: (value: number) => Result } : never
-      radial.strength?.(1)
+      radial.strength?.(0.9)
       graph.d3Force('center', null)
       graph.d3Force('radial', radial)
-      graph.d3Force('orbit', createOrbitForce())
-      graph.d3Force('cluster', createClusterForce(0.005))
+      graph.d3Force('orbit', createDriftForce())
+      graph.d3Force('cluster', createClusterForce(0.01))
       graph.d3Force('collide', createCollideForce())
-      graph.d3Force('ring', createRingConstraint())
-      graph.d3Force('sector', createSectorConstraint())
       const charge = graph.d3Force('charge') as { strength?: (value: number) => void; distanceMax?: (value: number) => void } | undefined
       charge?.strength?.(-40)
       charge?.distanceMax?.(700)
       const link = graph.d3Force('link') as { distance?: (value: number) => void; strength?: (value: number) => void } | undefined
       link?.distance?.(60)
-      link?.strength?.(0.3)
+      link?.strength?.(0.04)
       if (!paused) {
         graph.resumeAnimation()
         graph.d3ReheatSimulation()
@@ -336,8 +272,8 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     const fitTimer = cameraInitializedRef.current
       ? undefined
       : window.setTimeout(() => {
-        graph.cameraPosition({ x: 0, y: 900, z: 630 }, { x: 0, y: 0, z: 0 }, 0)
-        graph.zoomToFit(500, 60)
+        graph.cameraPosition({ x: 0, y: 300, z: 900 }, { x: 0, y: 0, z: 0 }, 0)
+        graph.zoomToFit(400, 60)
         cameraInitializedRef.current = true
       }, 700)
     return () => {
@@ -357,25 +293,9 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     focusCamera(graph, node)
   }, [nodes, selectedId])
 
-  useEffect(() => {
-    const graph = graphRef.current
-    if (!graph) return
-    const scene = graph.scene()
-    const group = new THREE.Group()
-    for (const radius of Object.values(ringRadius)) {
-      const geometry = new THREE.TorusGeometry(radius, 0.6, 8, 128)
-      const material = new THREE.MeshBasicMaterial({ color: theme === 'dark' ? '#ffffff' : '#27303a', transparent: true, opacity: theme === 'dark' ? 0.25 : 0.35 })
-      const ring = new THREE.Mesh(geometry, material)
-      ring.rotation.x = Math.PI / 2
-      group.add(ring)
-    }
-    scene.add(group)
-    return () => { scene.remove(group); group.traverse((child: THREE.Object3D) => { if (child instanceof THREE.Mesh) { child.geometry.dispose(); (child.material as THREE.Material).dispose() } }) }
-  }, [theme])
-
   const nodeThreeObject = (node: GraphNode) => {
     const friend = friendMap.get(node.id) ?? node
-    const showLabel = node.id === 'me' || node.circle <= 50 || hoveredId === node.id || selectedId === node.id
+    const showLabel = node.id === 'me' || node.circle <= 15 || hoveredId === node.id || selectedId === node.id
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: nodeTexture(friend, showLabel, theme),
       transparent: true,
@@ -401,18 +321,21 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
       nodeLabel={(node) => friendName((friendMap.get(node.id as string) ?? node) as Friend)}
       linkColor={(link) => contextColors[(link as GraphLink).context ?? 'other'] ?? contextColors.other}
       linkOpacity={((link: GraphLink) => {
-        if (!activeIds) return theme === 'dark' ? 0.5 : 0.6
+        if (!activeIds) return 0.55
         const candidate = link as GraphLink
         const source = typeof candidate.source === 'string' ? candidate.source : candidate.source.id
         const target = typeof candidate.target === 'string' ? candidate.target : candidate.target.id
         return activeIds.has(source) || activeIds.has(target) ? 1 : 0.12
       }) as unknown as number}
-      linkWidth={(link) => { const l = link as GraphLink; const source = typeof l.source === 'string' ? l.source : l.source.id; const target = typeof l.target === 'string' ? l.target : l.target.id; return activeIds && !activeIds.has(source) && !activeIds.has(target) ? 0.8 : activeIds ? 2.5 : 1.6 }}
+      linkWidth={(link) => { const l = link as GraphLink; const source = typeof l.source === 'string' ? l.source : l.source.id; const target = typeof l.target === 'string' ? l.target : l.target.id; return activeIds && !activeIds.has(source) && !activeIds.has(target) ? 0.08 : activeIds ? 3 : 1.2 }}
+      linkDirectionalParticles={1}
+      linkDirectionalParticleSpeed={0.004}
       onNodeClick={(node) => { const point = node as GraphNode; const id = point.id; if (id !== 'me') { graphSelectionRef.current = true; onSelect(id); if (graphRef.current) focusCamera(graphRef.current, point) } }}
       onNodeHover={(node) => { setHoveredId((node as GraphNode | null)?.id ?? null); graphRef.current?.refresh() }}
       d3AlphaDecay={0}
       d3AlphaMin={0}
       d3VelocityDecay={0.4}
+      numDimensions={3}
       warmupTicks={80}
       cooldownTicks={Infinity}
       enableNavigationControls

@@ -46,12 +46,15 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
     [graph],
   )
   const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes])
+  const groupColorIndexes = useMemo(() => {
+    const groups = [...new Set(graph.nodes.map((node) => node.group))]
+    return new Map(groups.map((group, index) => [group, index % palette.length]))
+  }, [graph.nodes])
 
   useEffect(() => {
     const forceGraph = fgRef.current
     if (!forceGraph) return
     forceGraph.d3Force('cluster', clusterForce(graph.nodes))
-    forceGraph.d3ReheatSimulation()
   }, [graph])
 
   useEffect(() => {
@@ -72,10 +75,10 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
       dagMode={layered ? 'td' : undefined}
       dagLevelDistance={120}
       nodeLabel={(node) => node.name}
-      nodeColor={(node) => palette[graph.nodes.findIndex((item) => item.group === node.group) % palette.length]}
+      nodeColor={(node) => palette[groupColorIndexes.get(node.group) ?? 0]}
       nodeVal={(node) => node.id === selectedId ? 2.4 : 1.25}
       nodeThreeObject={(node) => {
-        const color = palette[graph.nodes.findIndex((item) => item.group === node.group) % palette.length]
+        const color = palette[groupColorIndexes.get(node.group) ?? 0]
         const selected = node.id === selectedId
         const material = new THREE.MeshStandardMaterial({
           color,

@@ -39,7 +39,7 @@ function RelationList({ ids, onSelect }: { ids: string[]; onSelect: (id: string)
 
 export function App() {
   const [view, setView] = useState<'2d' | '3d'>('2d')
-  const [selectedId, setSelectedId] = useState(people[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState(peopleById.has('Q43274') ? 'Q43274' : people[0]?.id ?? null)
   const [search, setSearch] = useState('')
   const [layered, setLayered] = useState(false)
   const selected = selectedId ? peopleById.get(selectedId) : undefined

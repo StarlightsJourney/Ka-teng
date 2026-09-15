@@ -21,14 +21,14 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
     containerRef.current.innerHTML = ''
     const chart = f3.createChart(containerRef.current, people as unknown as Data)
       .setTransitionTime(650)
-      .setCardXSpacing(220)
-      .setCardYSpacing(130)
+      .setCardXSpacing(250)
+      .setCardYSpacing(150)
 
     const card = chart
       .setCardHtml()
       .setStyle('rect')
       .setCardDisplay([['first name', 'last name'], ['birthday']])
-      .setCardDim({ w: 190, h: 74 })
+      .setCardDim({ h: 70 })
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
 
     chart
@@ -37,10 +37,15 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
       .setEditFirst(true)
       .setCardClickOpen(card)
 
+    chart.updateMainId('Q43274')
     chart.updateTree({ initial: true, tree_position: 'fit' })
+    const fitTimer = window.setTimeout(() => {
+      chart.updateTree({ tree_position: 'fit' })
+    }, 0)
     chartRef.current = chart
 
     return () => {
+      window.clearTimeout(fitTimer)
       chart.editTreeInstance?.destroy()
       chartRef.current = null
       if (containerRef.current) containerRef.current.innerHTML = ''
@@ -52,5 +57,5 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
     chartRef.current.updateMainId(selectedId).updateTree({ tree_position: 'main_to_middle' })
   }, [selectedId])
 
-  return <div ref={containerRef} className="family-chart-host" aria-label="2D family chart" />
+  return <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
 }

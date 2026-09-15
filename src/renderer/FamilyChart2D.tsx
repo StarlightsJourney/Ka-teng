@@ -4,7 +4,7 @@ import type { Data, TreeDatum } from 'family-chart'
 import 'family-chart/styles/family-chart.css'
 import { displayInitials, fullName, lifespan } from '../element'
 import type { Person } from '../element'
-import { pruneHierarchy } from '../scene'
+import { createShowAllSnapshot, pruneHierarchy, restoreShowAllSnapshot, type CameraTransform, type ShowAllSnapshot } from '../scene'
 import { toFamilyChartData } from './familyChartAdapter'
 
 type FamilyChart2DProps = {
@@ -17,8 +17,6 @@ type FamilyChart2DProps = {
   onEdit: (personId: string) => void
 }
 
-type CameraTransform = { x: number; y: number; k: number }
-
 function cameraTarget(chart: ReturnType<typeof f3.createChart>): HTMLElement {
   return chart.svg.parentNode as HTMLElement
 }
@@ -30,9 +28,17 @@ function readCameraTransform(chart: ReturnType<typeof f3.createChart>): CameraTr
 
 function restoreCameraTransform(chart: ReturnType<typeof f3.createChart>, transform: CameraTransform): void {
   const target = cameraTarget(chart) as HTMLElement & { __zoom?: CameraTransform }
-  target.__zoom = transform
+  const current = target.__zoom
+  if (current) {
+    const prototype = Object.getPrototypeOf(current)
+    target.__zoom = Object.assign(Object.create(prototype), transform)
+  } else {
+    target.__zoom = transform
+  }
   const value = `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
-  chart.svg.querySelector('.view')?.setAttribute('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`)
+  const svgView = chart.svg.querySelector('.view')
+  svgView?.setAttribute('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`)
+  svgView?.setAttribute('style', `transform: ${value}`)
   chart.cont.querySelector('#htmlSvg .cards_view')?.setAttribute('style', `transform-origin: 0 0; transform: ${value}`)
 }
 
@@ -98,7 +104,7 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
   const expandedIdsRef = useRef(expandedIds)
   const showAllRef = useRef(showAll)
   const previousShowAllRef = useRef(showAll)
-  const cameraSnapshotRef = useRef<{ transform: CameraTransform; mainId: string; expandedIds: ReadonlySet<string> } | null>(null)
+  const cameraSnapshotRef = useRef<ShowAllSnapshot | null>(null)
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
@@ -159,6 +165,14 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
 
     chartRef.current = chart
+    const resizeChart = () => {
+      const currentChart = chartRef.current
+      if (!currentChart) return
+      currentChart.updateTree({ tree_position: 'inherit', transition_time: 0 })
+    }
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resizeChart)
+    resizeObserver?.observe(container)
+    window.addEventListener('resize', resizeChart)
     const handleMoreClick = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof HTMLElement)) return
@@ -177,6 +191,8 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
       window.clearTimeout(fitTimer)
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', resizeChart)
       container.removeEventListener('click', handleMoreClick, true)
       chartRef.current = null
       container.innerHTML = ''
@@ -195,20 +211,14 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
     if (showAll) {
       const transform = readCameraTransform(chart)
       if (transform) {
-        cameraSnapshotRef.current = {
-          transform,
-          mainId: chart.store.getMainId(),
-          expandedIds: new Set(expandedIdsRef.current),
-        }
+        cameraSnapshotRef.current = createShowAllSnapshot(transform, chart.store.getMainId(), expandedIdsRef.current)
       }
-      chart.updateTree({ tree_position: 'fit' })
+      chart.updateTree({ tree_position: 'fit', transition_time: 0 })
     } else {
-      const snapshot = cameraSnapshotRef.current
-      chart.updateMainId(snapshot?.mainId ?? selectedIdRef.current ?? 'Q43274')
-      chart.updateTree({ tree_position: 'inherit' })
-      if (snapshot) {
-        window.setTimeout(() => restoreCameraTransform(chart, snapshot.transform), 0)
-      }
+      const snapshot = restoreShowAllSnapshot(cameraSnapshotRef.current, selectedIdRef.current ?? 'Q43274', expandedIdsRef.current)
+      chart.updateMainId(snapshot.mainId)
+      chart.updateTree({ tree_position: 'inherit', transition_time: 0 })
+      restoreCameraTransform(chart, snapshot.transform)
     }
     previousShowAllRef.current = showAll
   }, [showAll])

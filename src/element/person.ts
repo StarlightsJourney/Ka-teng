@@ -7,7 +7,7 @@ export function fullName(person: Person): string {
 
 export function lifespan(person: Person): string {
   const birth = person.birth ? `★ ${person.birth}` : ''
-  const death = person.death ? `†${person.death}` : ''
+  const death = person.death ? `† ${person.death}` : ''
   return [birth, death].filter(Boolean).join(' ')
 }
 

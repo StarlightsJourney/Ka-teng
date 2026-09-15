@@ -13,7 +13,7 @@ const person: Person = {
 describe('person helpers', () => {
   it('formats names and lifespans', () => {
     expect(fullName(person)).toBe('Ada Lovelace')
-    expect(lifespan(person)).toBe('★ 1815 †1852')
+    expect(lifespan(person)).toBe('★ 1815 † 1852')
   })
 
   it('creates initials', () => {

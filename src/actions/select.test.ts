@@ -10,6 +10,7 @@ const state: AppState = {
   query: '',
   showAll: false,
   expandedIds: new Set(),
+  editing: false,
 }
 
 describe('selectPerson', () => {

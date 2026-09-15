@@ -6,6 +6,7 @@ export type AppState = {
   query: string
   showAll: boolean
   expandedIds: ReadonlySet<PersonId>
+  editing: boolean
 }
 
 export type Action = {

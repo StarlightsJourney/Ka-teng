@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { cancelEditing, clearSelection, editPerson, expandPerson, selectPerson, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
-import { neighborOf, searchPeople, type NeighborDirection } from '../scene'
+import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
 import { useTheme } from '../theme'
 import { DetailsPanel } from './DetailsPanel'
@@ -9,6 +9,7 @@ import { TopBar } from './TopBar'
 
 const people = loadBigTree()
 const peopleById = new Map(people.map((person) => [person.id, person]))
+const defaultMainId = largestFamilyRoot(people) ?? people[0]?.id ?? null
 
 const initialState: AppState = {
   peopleById,
@@ -82,6 +83,7 @@ export function App() {
         <div className="scene-panel">
           <FamilyChart2D
             people={currentPeople}
+            defaultMainId={defaultMainId}
             selectedId={state.selectedId}
             showAll={state.showAll}
             expandedIds={state.expandedIds}

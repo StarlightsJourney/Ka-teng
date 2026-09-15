@@ -27,7 +27,7 @@ export function TopBar(props: TopBarProps) {
       <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} shortcut={props.shortcut} />
       <div className="toolbar">
         <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={requestShowAll}>
-          Show all
+          {props.showAll ? 'Show less' : 'Show all'}
         </button>
         <ThemeToggle theme={props.theme} onToggle={props.onThemeToggle} />
       </div>

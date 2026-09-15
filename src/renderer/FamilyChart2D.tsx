@@ -4,42 +4,18 @@ import type { Data, TreeDatum } from 'family-chart'
 import 'family-chart/styles/family-chart.css'
 import { displayInitials, fullName, lifespan } from '../element'
 import type { Person } from '../element'
-import { createShowAllSnapshot, pruneHierarchy, restoreShowAllSnapshot, type CameraTransform, type ShowAllSnapshot } from '../scene'
+import { pruneHierarchy } from '../scene'
 import { toFamilyChartData } from './familyChartAdapter'
 
 type FamilyChart2DProps = {
   people: Person[]
+  defaultMainId: string | null
   selectedId: string | null
   showAll: boolean
   expandedIds: ReadonlySet<string>
   onSelect: (personId: string) => void
   onExpand: (personId: string) => void
   onEdit: (personId: string) => void
-}
-
-function cameraTarget(chart: ReturnType<typeof f3.createChart>): HTMLElement {
-  return chart.svg.parentNode as HTMLElement
-}
-
-function readCameraTransform(chart: ReturnType<typeof f3.createChart>): CameraTransform | null {
-  const zoom = (cameraTarget(chart) as HTMLElement & { __zoom?: CameraTransform }).__zoom
-  return zoom ? { x: zoom.x, y: zoom.y, k: zoom.k } : null
-}
-
-function restoreCameraTransform(chart: ReturnType<typeof f3.createChart>, transform: CameraTransform): void {
-  const target = cameraTarget(chart) as HTMLElement & { __zoom?: CameraTransform }
-  const current = target.__zoom
-  if (current) {
-    const prototype = Object.getPrototypeOf(current)
-    target.__zoom = Object.assign(Object.create(prototype), transform)
-  } else {
-    target.__zoom = transform
-  }
-  const value = `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
-  const svgView = chart.svg.querySelector('.view')
-  svgView?.setAttribute('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`)
-  svgView?.setAttribute('style', `transform: ${value}`)
-  chart.cont.querySelector('#htmlSvg .cards_view')?.setAttribute('style', `transform-origin: 0 0; transform: ${value}`)
 }
 
 function escapeHtml(value: string): string {
@@ -92,7 +68,7 @@ function cardInnerHtml(
   </div>`
 }
 
-export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
+export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -104,7 +80,7 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
   const expandedIdsRef = useRef(expandedIds)
   const showAllRef = useRef(showAll)
   const previousShowAllRef = useRef(showAll)
-  const cameraSnapshotRef = useRef<ShowAllSnapshot | null>(null)
+  const lastSelectionUpdateRef = useRef(0)
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
@@ -121,9 +97,9 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
     peopleByIdRef.current = new Map(people.map((person) => [person.id, person]))
     if (!chartRef.current) return
     chartRef.current.updateData(toFamilyChartData(people))
-    chartRef.current.updateMainId(selectedIdRef.current ?? 'Q43274')
+    chartRef.current.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chartRef.current.updateTree({ tree_position: 'inherit' })
-  }, [people])
+  }, [defaultMainId, people])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -186,7 +162,7 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
       else onExpandRef.current(personId)
     }
     container.addEventListener('click', handleMoreClick, true)
-    chart.updateMainId(selectedIdRef.current ?? 'Q43274')
+    chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chart.updateTree({ initial: true, tree_position: 'fit' })
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
@@ -197,7 +173,7 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
       chartRef.current = null
       container.innerHTML = ''
     }
-  }, [])
+  }, [defaultMainId])
 
   useEffect(() => {
     if (!chartRef.current) return
@@ -209,23 +185,26 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
     if (!chartRef.current || previousShowAllRef.current === showAll) return
     const chart = chartRef.current
     if (showAll) {
-      const transform = readCameraTransform(chart)
-      if (transform) {
-        cameraSnapshotRef.current = createShowAllSnapshot(transform, chart.store.getMainId(), expandedIdsRef.current)
-      }
-      chart.updateTree({ tree_position: 'fit', transition_time: 0 })
+      chart.updateTree({ tree_position: 'fit', transition_time: 650 })
     } else {
-      const snapshot = restoreShowAllSnapshot(cameraSnapshotRef.current, selectedIdRef.current ?? 'Q43274', expandedIdsRef.current)
-      chart.updateMainId(snapshot.mainId)
-      chart.updateTree({ tree_position: 'inherit', transition_time: 0 })
-      restoreCameraTransform(chart, snapshot.transform)
+      chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
+      chart.updateTree({
+        tree_position: selectedIdRef.current ? 'main_to_middle' : 'fit',
+        transition_time: 650,
+      })
     }
     previousShowAllRef.current = showAll
-  }, [showAll])
+  }, [defaultMainId, showAll])
 
   useEffect(() => {
     if (!chartRef.current || !selectedId) return
-    chartRef.current.updateMainId(selectedId).updateTree({ tree_position: 'main_to_middle' })
+    const now = performance.now()
+    const transitionTime = now - lastSelectionUpdateRef.current < 650 ? 0 : 650
+    chartRef.current.updateMainId(selectedId).updateTree({
+      tree_position: 'main_to_middle',
+      transition_time: transitionTime,
+    })
+    lastSelectionUpdateRef.current = now
   }, [selectedId])
 
   return <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />

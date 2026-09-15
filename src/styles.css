@@ -15,6 +15,8 @@ button { color: inherit; }
 .app-shell { position: relative; width: 100%; height: 100%; overflow: hidden; color: var(--text); background: var(--bg); }
 .top-bar { position: absolute; top: 12px; left: 50%; z-index: 10; display: flex; width: max-content; max-width: calc(100% - 24px); height: 44px; align-items: center; gap: 10px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-float); transform: translateX(-50%); }
 .brand { display: flex; align-items: center; gap: 7px; font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-size: 20px; font-weight: 400; letter-spacing: -.03em; white-space: nowrap; }
+.brand-button { padding: 0 2px; border: 0; background: transparent; cursor: pointer; }
+.brand-button:hover { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
 .search-box { position: relative; display: flex; width: 240px; transition: width .18s ease; }
 .search-box:focus-within { width: 360px; }
 .search-box input { width: 100%; height: 30px; padding: 0 42px 0 10px; border: 0; border-radius: var(--radius-pill); outline: none; color: var(--text); background: transparent; font-size: 13px; }
@@ -120,6 +122,29 @@ button { color: inherit; }
 .relation-row:hover { color: var(--link); }
 .relation-avatar { position: relative; display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 12px; font-weight: 600; }
 .empty-relation { margin: 0; color: var(--text-3); font-size: 13px; }
+.social-graph { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: var(--radius-md); background: var(--bg); }
+.social-graph canvas { display: block; background: var(--bg); opacity: 0; }
+.social-fallback { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--line); pointer-events: none; }
+.social-fallback-node { cursor: pointer; pointer-events: auto; }
+.social-fallback-node circle { stroke: var(--bg); stroke-width: .25; transition: opacity .15s ease, stroke-width .15s ease; }
+.social-fallback-node text { fill: #fff; font-family: Inter, sans-serif; font-size: 1.05px; font-weight: 700; pointer-events: none; }
+.social-fallback-node.selected circle { stroke: var(--accent); stroke-width: .5; }
+.social-pause { position: absolute; bottom: 14px; left: 14px; z-index: 4; width: 38px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-solid); box-shadow: var(--shadow-float); cursor: pointer; font-size: 13px; }
+.social-pause:hover { color: var(--text); background: var(--surface-2); }
+.friend-panel-head { display: flex; align-items: center; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--border-subtle); }
+.friend-panel-head h1 { margin: 0; font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-size: 24px; font-weight: 400; line-height: 1.05; }
+.friend-panel-head p { margin: 5px 0 0; color: var(--text-3); font-size: 12px; }
+.friend-panel-avatar { display: grid; width: 56px; height: 56px; flex: 0 0 56px; place-items: center; overflow: hidden; border-radius: 50%; color: #fff; background: var(--accent); font-size: 17px; font-weight: 600; }
+.friend-panel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.friend-panel-head .panel-close { align-self: flex-start; margin-left: auto; }
+.friend-contexts { display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 0; }
+.friend-contexts span { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-2); font-size: 11px; }
+.friend-note { margin: 0 0 18px; color: var(--text-2); line-height: 1.5; }
+.friend-mutuals { padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+.friend-mutuals h2 { margin: 0 0 9px; color: var(--text-4); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.friend-mutuals button { display: block; width: 100%; padding: 6px 0; border: 0; color: var(--text-2); background: transparent; cursor: pointer; text-align: left; }
+.friend-mutuals button:hover { color: var(--link); }
+.friend-mutuals p { margin: 0; color: var(--text-3); font-size: 13px; }
 .navigation-hint { position: absolute; bottom: 12px; left: 50%; z-index: 3; padding: 4px 9px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); color: var(--text-4); background: var(--surface); font-size: 11px; transform: translateX(-50%); white-space: nowrap; }
 .expand-pill { position: absolute; bottom: 40px; left: 50%; z-index: 3; padding: 7px 12px; border: 1px solid var(--accent); border-radius: var(--radius-pill); color: var(--accent-fg); background: var(--accent); box-shadow: var(--shadow-float); cursor: pointer; font-size: 12px; font-weight: 600; transform: translateX(-50%); white-space: nowrap; animation: expand-pill-pulse 2s ease-in-out infinite; }
 @keyframes expand-pill-pulse { 0%, 100% { opacity: .86; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.03); } }

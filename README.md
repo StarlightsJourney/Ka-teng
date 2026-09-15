@@ -2,6 +2,10 @@
 
 Ka-teng is an open-source family lineage visualisation with a navigable 2D family tree powered by [family-chart](https://github.com/donatso/family-chart).
 
+## Peng-yu friends mode
+
+Click the Ka-teng wordmark to switch to Peng-yu (朋友), a separate friends-only 3D social graph. Friends are arranged on Dunbar-ring shells, grouped by context, and can be explored with hover, selection, search, and camera controls. Peng-yu never changes the Ka-teng family dataset.
+
 ## Quick start
 
 ```bash

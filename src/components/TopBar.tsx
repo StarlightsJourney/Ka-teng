@@ -2,6 +2,7 @@ import type { Person } from '../element'
 import type { ThemeMode } from '../theme'
 import { SearchBox } from './SearchBox'
 import { ThemeToggle } from './ThemeToggle'
+import type { AppMode } from './App'
 
 type TopBarProps = {
   query: string
@@ -20,20 +21,24 @@ type TopBarProps = {
   onThemeToggle: () => void
   shortcut: string
   inputRef: (input: HTMLInputElement | null) => void
+  mode: AppMode
+  onToggleMode: () => void
+  placeholder?: string
+  hideShowAll?: boolean
 }
 
 export function TopBar(props: TopBarProps) {
   return (
     <header className="top-bar">
-      <div className="brand">Ka-teng</div>
-      <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} onSelect={props.onSearchSelect} onDismiss={props.onSearchDismiss} suggestions={props.suggestions} shortcut={props.shortcut} />
+      <button type="button" className="brand brand-button" onClick={props.onToggleMode} title={props.mode === 'ka-teng' ? 'Switch to Peng-yu' : 'Switch to Ka-teng'}>{props.mode === 'ka-teng' ? 'Ka-teng' : 'Peng-yu'}</button>
+      <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} onSelect={props.onSearchSelect} onDismiss={props.onSearchDismiss} suggestions={props.suggestions} shortcut={props.shortcut} placeholder={props.placeholder} />
       <div className="toolbar">
-        <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={props.onRequestShowAll}>
+        {!props.hideShowAll && <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={props.onRequestShowAll}>
           {props.showAll ? 'Show less' : 'Show all'}
-        </button>
+        </button>}
         <ThemeToggle theme={props.theme} onToggle={props.onThemeToggle} />
       </div>
-      {props.confirming && !props.showAll && (
+      {props.mode === 'ka-teng' && props.confirming && !props.showAll && (
         <div className="show-all-popover" role="dialog">
           <p>Show all of {props.familyFirstName}&apos;s family? Large trees can be slow to read.</p>
           <div><button type="button" onClick={props.onConfirmShowAll}>Show entire tree</button><button type="button" onClick={props.onCancelShowAll}>Cancel</button></div>

@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { cancelEditing, clearSelection, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
+import { loadFriends } from '../data'
+import { friendName } from '../element'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
+import { SocialGraph3D } from '../renderer/SocialGraph3D'
 import { useTheme } from '../theme'
 import { DetailsPanel } from './DetailsPanel'
+import { FriendPanel } from './FriendPanel'
 import { TopBar } from './TopBar'
 
+export type AppMode = 'ka-teng' | 'peng-yu'
 const people = loadBigTree()
+const friendGraph = loadFriends()
 const peopleById = new Map(people.map((person) => [person.id, person]))
 const initialState: AppState = {
   peopleById,
@@ -20,8 +26,11 @@ const initialState: AppState = {
 
 export function App() {
   const [state, setState] = useState(initialState)
+  const [mode, setMode] = useState<AppMode>('ka-teng')
   const [theme, toggleTheme] = useTheme()
   const [searchInput, setSearchInput] = useState<HTMLInputElement | null>(null)
+  const [friendSelectedId, setFriendSelectedId] = useState<string | null>(null)
+  const [friendQuery, setFriendQuery] = useState('')
   const [showAllConfirming, setShowAllConfirming] = useState(false)
   const [hasHiddenRelatives, setHasHiddenRelatives] = useState(false)
   const perform = (action: Action) => setState((current) => action.perform(current))
@@ -32,13 +41,26 @@ export function App() {
     [currentPeople],
   )
   const matches = useMemo(() => searchPeople(state.query, state.peopleById), [state.query, state.peopleById])
-  const suggestions = matches.slice(0, 8)
+  const friendSuggestions = useMemo(() => {
+    const query = friendQuery.trim().toLocaleLowerCase()
+    if (!query) return []
+    return friendGraph.friends.filter((friend) => friendName(friend).toLocaleLowerCase().includes(query)).slice(0, 8)
+  }, [friendQuery])
+  const suggestions = mode === 'ka-teng'
+    ? matches.slice(0, 8)
+    : friendSuggestions.map((friend) => ({ id: friend.id, name: { first: friend.firstName, last: friend.lastName }, gender: 'U' as const, avatar: friend.avatar }))
   const currentMainId = state.selectedId ?? defaultMainId
   const currentMain = currentMainId ? state.peopleById.get(currentMainId) : undefined
   const shortcut = typeof navigator !== 'undefined' && (/Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent)) ? '⌘K' : 'Ctrl K'
   const requestShowAll = () => {
     if (state.showAll) perform(toggleExpandAll(false))
     else setShowAllConfirming(true)
+  }
+  const toggleMode = () => {
+    setMode((current) => current === 'ka-teng' ? 'peng-yu' : 'ka-teng')
+    setFriendSelectedId(null)
+    setFriendQuery('')
+    perform(setSearch(''))
   }
 
   useEffect(() => {
@@ -52,11 +74,12 @@ export function App() {
         return
       }
       if (event.key === 'Escape') {
-        perform(clearSelection())
+        if (mode === 'peng-yu') setFriendSelectedId(null)
+        else perform(clearSelection())
         return
       }
       if (isTextEntry) return
-      if (!state.selectedId) return
+      if (mode === 'peng-yu' || !state.selectedId) return
       const direction: NeighborDirection | undefined = event.key === 'ArrowUp'
         ? 'up'
         : event.key === 'ArrowDown'
@@ -75,18 +98,32 @@ export function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [searchInput, state.peopleById, state.selectedId])
+  }, [mode, searchInput, state.peopleById, state.selectedId])
+
+  const query = mode === 'ka-teng' ? state.query : friendQuery
+  const selectedFriend = friendSelectedId ? friendGraph.friends.find((friend) => friend.id === friendSelectedId) : undefined
 
   return (
     <main className="app-shell">
       <TopBar
-        query={state.query}
-        showAll={state.showAll}
+        query={query}
+        showAll={mode === 'ka-teng' && state.showAll}
         theme={theme}
-        onSearch={(query) => perform(setSearch(query))}
-        onSearchSubmit={() => matches[0] && perform(searchAndSelect(state.query))}
-        onSearchSelect={(id) => perform(selectSearchResult(id))}
-        onSearchDismiss={() => { searchInput?.blur(); perform(setSearch('')) }}
+        onSearch={(value) => mode === 'ka-teng' ? perform(setSearch(value)) : setFriendQuery(value)}
+        onSearchSubmit={() => {
+          if (mode === 'ka-teng' && matches[0]) perform(searchAndSelect(state.query))
+          else if (mode === 'peng-yu' && friendSuggestions[0]) setFriendSelectedId(friendSuggestions[0].id)
+        }}
+        onSearchSelect={(id) => {
+          searchInput?.blur()
+          if (mode === 'ka-teng') perform(selectSearchResult(id))
+          else { setFriendSelectedId(id); setFriendQuery('') }
+        }}
+        onSearchDismiss={() => {
+          searchInput?.blur()
+          if (mode === 'ka-teng') perform(setSearch(''))
+          else setFriendQuery('')
+        }}
         suggestions={suggestions}
         familyFirstName={currentMain?.name.first || currentMain?.name.last || currentMain?.id || 'this person'}
         confirming={showAllConfirming}
@@ -96,10 +133,14 @@ export function App() {
         onThemeToggle={toggleTheme}
         shortcut={shortcut}
         inputRef={setSearchInput}
+        mode={mode}
+        onToggleMode={toggleMode}
+        placeholder={mode === 'ka-teng' ? 'Search people…' : 'Search friends…'}
+        hideShowAll={mode === 'peng-yu'}
       />
       <section className="workspace">
         <div className="scene-panel">
-          <FamilyChart2D
+          {mode === 'ka-teng' ? <FamilyChart2D
             people={currentPeople}
             defaultMainId={defaultMainId}
             selectedId={state.selectedId}
@@ -109,9 +150,9 @@ export function App() {
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
             onHiddenChange={setHasHiddenRelatives}
-          />
+          /> : <SocialGraph3D friends={friendGraph.friends} links={friendGraph.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />}
         </div>
-        {selected && <DetailsPanel
+        {mode === 'ka-teng' && selected && <DetailsPanel
           person={selected}
           people={state.peopleById}
           editing={state.editing}
@@ -122,7 +163,8 @@ export function App() {
           onRemove={() => perform(removePersonAction(selected.id))}
           onClose={() => perform(clearSelection())}
         />}
-        {hasHiddenRelatives && !state.showAll && <button type="button" className="expand-pill" onClick={requestShowAll}>Expand · show the whole family</button>}
+        {mode === 'peng-yu' && selectedFriend && <FriendPanel friend={selectedFriend} friends={friendGraph.friends} links={friendGraph.links} onSelect={setFriendSelectedId} onClose={() => setFriendSelectedId(null)} />}
+        {mode === 'ka-teng' && hasHiddenRelatives && !state.showAll && <button type="button" className="expand-pill" onClick={requestShowAll}>Expand · show the whole family</button>}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>
     </main>

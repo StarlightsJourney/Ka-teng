@@ -11,6 +11,7 @@ type SearchBoxProps = {
   onDismiss: () => void
   shortcut: string
   inputRef: (input: HTMLInputElement | null) => void
+  placeholder?: string
 }
 
 function HighlightedName({ person, query }: { person: Person; query: string }) {
@@ -22,7 +23,7 @@ function HighlightedName({ person, query }: { person: Person; query: string }) {
   return <>{name.slice(0, index)}<strong>{name.slice(index, index + needle.length)}</strong>{name.slice(index + needle.length)}</>
 }
 
-export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, shortcut, inputRef }: SearchBoxProps) {
+export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, shortcut, inputRef, placeholder = 'Search people…' }: SearchBoxProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const boxRef = useRef<HTMLLabelElement>(null)
@@ -62,7 +63,7 @@ export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelec
         onChange={(event) => onChange(event.target.value)}
         onFocus={() => setDismissed(false)}
         onKeyDown={handleKeyDown}
-        placeholder="Search people…"
+        placeholder={placeholder}
       />
       <kbd>{shortcut}</kbd>
       {value.trim() && suggestions.length > 0 && !dismissed && (

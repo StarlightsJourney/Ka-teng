@@ -16,7 +16,7 @@ export function toFamilyChartData(people: Person[]): Data {
       gender: person.gender,
       birthday: person.birth,
       death: person.death,
-      avatar: person.photo,
+      avatar: person.avatar,
     },
     rels: {
       parents: person.parents ?? [],

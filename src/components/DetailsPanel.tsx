@@ -14,7 +14,10 @@ function RelationList({ people, onSelect }: { people: Person[]; onSelect: (id: s
     <div className="relation-list">
       {people.map((person) => (
         <button key={person.id} type="button" className="relation-row" onClick={() => onSelect(person.id)}>
-          <span className={`relation-avatar gender-${person.gender.toLowerCase()}`}>{displayInitials(person)}</span>
+          <span className={`relation-avatar gender-${person.gender.toLowerCase()}`}>
+            <span>{displayInitials(person)}</span>
+            {person.avatar && <img src={person.avatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}
+          </span>
           <span>{fullName(person)}</span>
         </button>
       ))}

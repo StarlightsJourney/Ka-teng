@@ -38,7 +38,7 @@ export function normalizeWikidata(source: RawPerson[]): Person[] {
       gender: (gender === 'F' || gender === 'M' || gender === 'X' ? gender : 'U') as Gender,
       birth: text(data.birthday) ?? text(data.birth),
       death: text(data.death),
-      photo: text(data.avatar) ?? text(data.photo),
+      avatar: text(data.avatar) ?? text(data.photo),
       parents: ids([...(rels.parents ?? []), rels.father, rels.mother]),
       spouses: ids(rels.spouses ?? []),
       children: ids(rels.children ?? []),

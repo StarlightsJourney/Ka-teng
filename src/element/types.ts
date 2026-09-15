@@ -15,7 +15,7 @@ export type Person = {
   gender: Gender
   birth?: string
   death?: string
-  photo?: string
+  avatar?: string
   parents?: PersonId[]
   spouses?: PersonId[]
   children?: PersonId[]

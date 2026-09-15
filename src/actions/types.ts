@@ -8,6 +8,7 @@ export type AppState = {
   query: string
   view: ViewMode
   layered: boolean
+  showAll: boolean
 }
 
 export type Action = {

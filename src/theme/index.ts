@@ -12,12 +12,8 @@ function storedTheme(): ThemeMode | null {
   }
 }
 
-function preferredTheme(): ThemeMode {
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
-
 export function useTheme(): [ThemeMode, () => void] {
-  const [theme, setTheme] = useState<ThemeMode>(() => storedTheme() ?? preferredTheme())
+  const [theme, setTheme] = useState<ThemeMode>(() => storedTheme() ?? 'light')
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     try {

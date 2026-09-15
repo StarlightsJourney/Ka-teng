@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { selectPerson, searchAndSelect, setSearch, setView, toggleLayered, type Action, type AppState } from '../actions'
+import { selectPerson, searchAndSelect, setSearch, setView, toggleExpandAll, toggleLayered, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { toFamilyGraph, searchPeople } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
@@ -18,6 +18,7 @@ const initialState: AppState = {
   query: '',
   view: '2d',
   layered: false,
+  showAll: false,
 }
 
 export function App() {
@@ -33,17 +34,19 @@ export function App() {
         query={state.query}
         view={state.view}
         layered={state.layered}
+        showAll={state.showAll}
         theme={theme}
         onSearch={(query) => perform(setSearch(query))}
         onSearchSubmit={() => matches[0] && perform(searchAndSelect(state.query))}
         onViewChange={(view) => perform(setView(view))}
         onLayeredChange={(layered) => perform(toggleLayered(layered))}
+        onShowAllChange={(showAll) => perform(toggleExpandAll(showAll))}
         onThemeToggle={toggleTheme}
       />
       <section className="workspace">
         <div className="scene-panel">
           {state.view === '2d'
-            ? <FamilyChart2D people={people} selectedId={state.selectedId} onSelect={(id) => perform(selectPerson(id))} />
+            ? <FamilyChart2D people={people} selectedId={state.selectedId} showAll={state.showAll} onSelect={(id) => perform(selectPerson(id))} />
             : <FamilyGraph3D graph={graph} selectedId={state.selectedId} layered={state.layered} theme={theme} onSelect={(id) => perform(selectPerson(id))} />}
         </div>
         {selected && <DetailsPanel person={selected} people={state.peopleById} onSelect={(id) => perform(selectPerson(id))} />}

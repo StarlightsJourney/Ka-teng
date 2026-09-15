@@ -10,6 +10,7 @@ const state: AppState = {
   query: '',
   view: '2d',
   layered: false,
+  showAll: false,
 }
 
 describe('selectPerson', () => {

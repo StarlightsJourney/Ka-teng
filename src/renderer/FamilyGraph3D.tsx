@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph3D, { type ForceGraphMethods, type GraphData } from 'react-force-graph-3d'
 import * as THREE from 'three'
 import type { ThemeMode } from '../theme'
@@ -38,10 +38,20 @@ function clusterForce(nodes: GraphNode[]) {
   return force
 }
 
+function readSceneColors(theme: ThemeMode) {
+  const styles = getComputedStyle(document.documentElement)
+  return {
+    background: styles.getPropertyValue('--bg').trim() || (theme === 'dark' ? '#0B0B0C' : '#F7F6F3'),
+    line: styles.getPropertyValue('--line').trim() || '#9A9AA0',
+    accent: styles.getPropertyValue('--accent').trim() || '#FF6363',
+  }
+}
+
 export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: FamilyGraph3DProps) {
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink>>()
   const previousSelectedIdRef = useRef(selectedId)
   const fittedLayerRef = useRef<boolean | null>(null)
+  const [sceneColors, setSceneColors] = useState(() => readSceneColors(theme))
   const graphData = useMemo<GraphData<GraphNode, GraphLink>>(
     () => ({ nodes: graph.nodes, links: graph.links }),
     [graph],
@@ -51,6 +61,12 @@ export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: F
     const groups = [...new Set(graph.nodes.map((node) => node.group))]
     return new Map(groups.map((group, index) => [group, index % palette.length]))
   }, [graph.nodes])
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setSceneColors(readSceneColors(theme)))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [theme])
 
   useEffect(() => {
     const forceGraph = fgRef.current
@@ -87,7 +103,7 @@ export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: F
     <ForceGraph3D
       ref={fgRef}
       graphData={graphData}
-      backgroundColor={theme === 'dark' ? '#0B0B0C' : '#F7F6F3'}
+      backgroundColor={sceneColors.background}
       dagMode={layered ? 'td' : undefined}
       dagLevelDistance={120}
       nodeLabel={(node) => node.name}
@@ -104,13 +120,13 @@ export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: F
         })
         return new THREE.Mesh(new THREE.SphereGeometry(selected ? 5.5 : 4, 16, 12), material)
       }}
-      linkColor={(link) => link.kind === 'spouse' ? '#9A9AA0' : '#A9A9AE'}
+      linkColor={(link) => link.kind === 'spouse' ? sceneColors.line : sceneColors.accent}
       linkWidth={(link) => link.kind === 'spouse' ? 0.6 : 1.1}
       linkDirectionalArrowLength={(link) => link.kind === 'parent' ? 5 : 0}
       linkDirectionalArrowRelPos={0.9}
       linkMaterial={(link) => link.kind === 'spouse'
-        ? new THREE.LineDashedMaterial({ color: '#9A9AA0', dashSize: 4, gapSize: 3 })
-        : new THREE.LineBasicMaterial({ color: '#A9A9AE' })}
+        ? new THREE.LineDashedMaterial({ color: sceneColors.line, dashSize: 4, gapSize: 3 })
+        : new THREE.LineBasicMaterial({ color: sceneColors.accent })}
       onNodeClick={(node) => onSelect(node.id as string)}
       onEngineStop={handleEngineStop}
       warmupTicks={80}

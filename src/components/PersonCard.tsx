@@ -1,4 +1,4 @@
-import { displayInitials, fullName } from '../element'
+import { displayInitials, fullName, lifespan } from '../element'
 import type { Person } from '../element'
 
 export function PersonCard({ person }: { person: Person }) {
@@ -9,7 +9,7 @@ export function PersonCard({ person }: { person: Person }) {
       </div>
       <div className="person-card-copy">
         <strong>{fullName(person)}</strong>
-        <span className="person-dates">★{person.birth ?? '—'} †{person.death ?? '—'}</span>
+        <span className="person-dates">{lifespan(person)}</span>
       </div>
     </div>
   )

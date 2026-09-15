@@ -9,6 +9,7 @@
   --accent-soft: rgba(255, 99, 99, .14);
   --male: #6FA1FF;
   --female: #F08FB0;
+  --line: rgba(255, 255, 255, .22);
   --radius-card: 10px;
   --radius-control: 8px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 12px rgba(0, 0, 0, .06);
@@ -25,6 +26,7 @@
   --accent-soft: #E8EEFF;
   --male: #5B8DEF;
   --female: #E07A9B;
+  --line: rgba(0, 0, 0, .22);
 }
 
 [data-theme='dark'] {
@@ -38,4 +40,5 @@
   --accent-soft: rgba(255, 99, 99, .14);
   --male: #6FA1FF;
   --female: #F08FB0;
+  --line: rgba(255, 255, 255, .22);
 }

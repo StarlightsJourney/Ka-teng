@@ -30,10 +30,26 @@ button { color: inherit; }
 .workspace { display: flex; width: 100%; height: calc(100% - 64px); }
 .scene-panel { position: relative; flex: 1; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
 .family-chart-host { width: 100%; height: 100%; min-height: 0; color: var(--text); background: var(--bg); }
-.family-chart-host.f3 { --background-color: var(--bg); --text-color: var(--text); height: 100%; color: var(--text); background: var(--bg); }
-.family-chart-host.f3 div.card { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-card); color: var(--text); background: var(--surface); box-shadow: var(--shadow); }
-.family-chart-host.f3 div.card:hover { border-color: var(--accent); }
-.family-chart-host.f3 div.card .first-name, .family-chart-host.f3 div.card .last-name { color: var(--text); }
+.family-chart-host.f3 { --female-color: var(--female); --male-color: var(--male); --genderless-color: var(--muted); --background-color: var(--bg); --text-color: var(--text); height: 100%; color: var(--text); background: var(--bg); font-family: Inter, -apple-system, "Segoe UI", system-ui, sans-serif; }
+.family-chart-host.f3 div.card-rect { width: 200px; min-height: 56px; padding: 0; text-align: left; }
+.family-chart-host.f3 div.card-female .card-inner, .family-chart-host.f3 div.card-male .card-inner, .family-chart-host.f3 div.card-genderless .card-inner { background: var(--surface); }
+.family-chart-host.f3 div.card .kt-card { display: flex; width: 200px; min-height: 56px; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: var(--radius-card); box-shadow: var(--shadow); }
+.family-chart-host.f3 div.card .kt-male { border-left-color: var(--male); }
+.family-chart-host.f3 div.card .kt-female { border-left-color: var(--female); }
+.family-chart-host.f3 div.card:hover .kt-card { border-color: var(--accent); }
+.family-chart-host.f3 .kt-avatar { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; color: var(--muted); background: var(--surface-2); font-size: 12px; font-weight: 600; }
+.family-chart-host.f3 .kt-body { min-width: 0; }
+.family-chart-host.f3 .kt-name { overflow: hidden; color: var(--text); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.family-chart-host.f3 .kt-life { min-height: 17px; color: var(--muted); font-size: 12px; }
+.family-chart-host.f3 .card-main .kt-card { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.family-chart-host.f3 path.link { stroke: var(--line) !important; stroke-width: 1.5px; }
+.family-chart-host.f3 .f3-path-to-main { stroke: var(--accent) !important; }
+.family-chart-host.f3 .card_add .card-body-rect { fill: var(--surface-2); stroke: var(--border); }
+.family-chart-host.f3 g.card_add text { fill: var(--text); }
+.family-chart-host.f3 .card_add_relative { color: var(--muted); }
+.family-chart-host.f3 .card_add_relative:hover { color: var(--accent); }
+.family-chart-host.f3 div.card-to-add .card-inner, .family-chart-host.f3 div.card-new-rel .card-inner { border: 1px dashed var(--border); border-radius: var(--radius-card); color: var(--muted); background: var(--surface); }
+.family-chart-host.f3 div.card-to-add .card-inner { display: grid; width: 200px; min-height: 56px; place-items: center; }
 .details-panel { width: 320px; flex: 0 0 320px; overflow-y: auto; padding: 28px 24px; border-left: 1px solid var(--border); background: var(--surface); }
 .person-card { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 13px 14px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-2); box-shadow: var(--shadow); }
 .person-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; content: ""; background: var(--muted); }
@@ -42,7 +58,7 @@ button { color: inherit; }
 .person-avatar { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text); background: var(--accent-soft); font-size: 12px; font-weight: 650; }
 .person-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .person-card-copy { display: grid; min-width: 0; gap: 3px; }
-.person-card-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.person-card-copy strong { display: -webkit-box; overflow: hidden; font-size: 14px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .person-dates { color: var(--muted); font-size: 12px; }
 .metadata { display: grid; gap: 10px; margin: 18px 0 28px; padding: 15px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .metadata div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }

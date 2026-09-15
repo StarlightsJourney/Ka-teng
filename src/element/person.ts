@@ -6,8 +6,9 @@ export function fullName(person: Person): string {
 }
 
 export function lifespan(person: Person): string {
-  if (!person.birth && !person.death) return ''
-  return `${person.birth ?? '?'}–${person.death ?? ''}`
+  const birth = person.birth ? `★ ${person.birth}` : ''
+  const death = person.death ? `†${person.death}` : ''
+  return [birth, death].filter(Boolean).join(' ')
 }
 
 export function displayInitials(person: Person): string {

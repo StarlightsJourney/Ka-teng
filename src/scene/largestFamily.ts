@@ -21,22 +21,6 @@ function familyNeighbors(people: readonly Person[]): Map<PersonId, Set<PersonId>
   return neighbors
 }
 
-export function connectedFamilySize(people: readonly Person[], personId: PersonId): number {
-  const neighbors = familyNeighbors(people)
-  if (!neighbors.has(personId)) return 0
-  const visited = new Set<PersonId>([personId])
-  const queue = [personId]
-  while (queue.length) {
-    const id = queue.shift() as PersonId
-    for (const relatedId of neighbors.get(id) ?? []) {
-      if (visited.has(relatedId)) continue
-      visited.add(relatedId)
-      queue.push(relatedId)
-    }
-  }
-  return visited.size
-}
-
 export function largestFamilyRoot(people: readonly Person[]): PersonId | null {
   const neighbors = familyNeighbors(people)
   const visited = new Set<PersonId>()

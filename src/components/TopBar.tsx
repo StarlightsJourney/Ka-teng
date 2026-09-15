@@ -14,7 +14,6 @@ type TopBarProps = {
   onSearchDismiss: () => void
   suggestions: Person[]
   familyFirstName: string
-  familySize: number
   onShowAllChange: (showAll: boolean) => void
   onThemeToggle: () => void
   shortcut: string
@@ -39,7 +38,7 @@ export function TopBar(props: TopBarProps) {
       </div>
       {confirming && !props.showAll && (
         <div className="show-all-popover" role="dialog">
-          <p>Show all of {props.familyFirstName}&apos;s connected family? {props.familySize} people — it can be slow to read.</p>
+          <p>Show all of {props.familyFirstName}&apos;s family? Large trees can be slow to read.</p>
           <div><button type="button" onClick={() => { setConfirming(false); props.onShowAllChange(true) }}>Show entire tree</button><button type="button" onClick={() => setConfirming(false)}>Cancel</button></div>
         </div>
       )}

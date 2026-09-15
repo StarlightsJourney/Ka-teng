@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { cancelEditing, clearSelection, editPerson, expandPerson, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
-import { connectedFamilySize, largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
+import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
 import { useTheme } from '../theme'
 import { DetailsPanel } from './DetailsPanel'
@@ -31,7 +31,6 @@ export function App() {
   const suggestions = matches.slice(0, 8)
   const currentMainId = state.selectedId ?? defaultMainId
   const currentMain = currentMainId ? state.peopleById.get(currentMainId) : undefined
-  const familySize = currentMainId ? connectedFamilySize(currentPeople, currentMainId) : 0
   const shortcut = typeof navigator !== 'undefined' && (/Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent)) ? '⌘K' : 'Ctrl K'
 
   useEffect(() => {
@@ -82,7 +81,6 @@ export function App() {
         onSearchDismiss={() => { searchInput?.blur(); perform(setSearch('')) }}
         suggestions={suggestions}
         familyFirstName={currentMain?.name.first || currentMain?.name.last || currentMain?.id || 'this person'}
-        familySize={familySize}
         onShowAllChange={(showAll) => perform(toggleExpandAll(showAll))}
         onThemeToggle={toggleTheme}
         shortcut={shortcut}

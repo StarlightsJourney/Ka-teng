@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react'
 import f3 from 'family-chart'
 import type { Data, TreeDatum } from 'family-chart'
 import 'family-chart/styles/family-chart.css'
-import type { Person } from '../types'
+import type { Person } from '../element'
+import { toFamilyChartData } from './familyChartAdapter'
 
 type FamilyChart2DProps = {
   people: Person[]
@@ -14,21 +15,24 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
-  onSelectRef.current = onSelect
+  const initialSelectedIdRef = useRef(selectedId)
+  useEffect(() => {
+    onSelectRef.current = onSelect
+  }, [onSelect])
 
   useEffect(() => {
     if (!containerRef.current) return
-    containerRef.current.innerHTML = ''
-    const chart = f3.createChart(containerRef.current, people as unknown as Data)
+    const container = containerRef.current
+    container.innerHTML = ''
+    const chart = f3.createChart(container, toFamilyChartData(people) as Data)
       .setTransitionTime(650)
       .setCardXSpacing(250)
       .setCardYSpacing(150)
-
     const card = chart
       .setCardHtml()
       .setStyle('rect')
       .setCardDisplay([['first name', 'last name'], ['birthday']])
-      .setCardDim({ h: 70 })
+      .setCardDim({ w: 220, h: 70 })
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
 
     chart
@@ -36,19 +40,15 @@ export function FamilyChart2D({ people, selectedId, onSelect }: FamilyChart2DPro
       .setFields(['first name', 'last name', 'birthday'])
       .setEditFirst(true)
       .setCardClickOpen(card)
-
-    chart.updateMainId('Q43274')
+    chart.updateMainId(initialSelectedIdRef.current ?? people[0]?.id ?? '')
     chart.updateTree({ initial: true, tree_position: 'fit' })
-    const fitTimer = window.setTimeout(() => {
-      chart.updateTree({ tree_position: 'fit' })
-    }, 0)
+    const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     chartRef.current = chart
-
     return () => {
       window.clearTimeout(fitTimer)
       chart.editTreeInstance?.destroy()
       chartRef.current = null
-      if (containerRef.current) containerRef.current.innerHTML = ''
+      container.innerHTML = ''
     }
   }, [people])
 

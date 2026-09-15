@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react'
 import ForceGraph3D, { type ForceGraphMethods, type GraphData } from 'react-force-graph-3d'
 import * as THREE from 'three'
-import type { FamilyGraph, GraphLink, GraphNode } from '../types'
+import type { ThemeMode } from '../theme'
+import type { FamilyGraph, GraphLink, GraphNode } from '../scene'
 
-const palette = [
-  '#d4a054', '#76b5c5', '#c77dff', '#f28482', '#84a59d', '#f6bd60',
-  '#90be6d', '#577590', '#f3722c', '#b8b8ff', '#43aa8b', '#f94144',
-]
+const palette = ['#7C91B8', '#A889B8', '#C28E76', '#719A8C', '#A8A06C', '#6B9AA7', '#B07B9A', '#879C73']
 
 type FamilyGraph3DProps = {
   graph: FamilyGraph
   selectedId: string | null
   layered: boolean
+  theme: ThemeMode
   onSelect: (personId: string) => void
 }
 
@@ -39,7 +38,7 @@ function clusterForce(nodes: GraphNode[]) {
   return force
 }
 
-export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGraph3DProps) {
+export function FamilyGraph3D({ graph, selectedId, layered, theme, onSelect }: FamilyGraph3DProps) {
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink>>()
   const previousSelectedIdRef = useRef(selectedId)
   const fittedLayerRef = useRef<boolean | null>(null)
@@ -88,7 +87,7 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
     <ForceGraph3D
       ref={fgRef}
       graphData={graphData}
-      backgroundColor="#0f1115"
+      backgroundColor={theme === 'dark' ? '#0B0B0C' : '#F7F6F3'}
       dagMode={layered ? 'td' : undefined}
       dagLevelDistance={120}
       nodeLabel={(node) => node.name}
@@ -100,18 +99,18 @@ export function FamilyGraph3D({ graph, selectedId, layered, onSelect }: FamilyGr
         const material = new THREE.MeshStandardMaterial({
           color,
           emissive: selected ? color : '#000000',
-          emissiveIntensity: selected ? 0.8 : 0,
-          roughness: 0.7,
+          emissiveIntensity: selected ? 0.55 : 0,
+          roughness: 0.78,
         })
         return new THREE.Mesh(new THREE.SphereGeometry(selected ? 5.5 : 4, 16, 12), material)
       }}
-      linkColor={(link) => link.kind === 'spouse' ? '#8b8f98' : '#d4a054'}
+      linkColor={(link) => link.kind === 'spouse' ? '#9A9AA0' : '#A9A9AE'}
       linkWidth={(link) => link.kind === 'spouse' ? 0.6 : 1.1}
       linkDirectionalArrowLength={(link) => link.kind === 'parent' ? 5 : 0}
       linkDirectionalArrowRelPos={0.9}
       linkMaterial={(link) => link.kind === 'spouse'
-        ? new THREE.LineDashedMaterial({ color: '#8b8f98', dashSize: 4, gapSize: 3 })
-        : new THREE.LineBasicMaterial({ color: '#d4a054' })}
+        ? new THREE.LineDashedMaterial({ color: '#9A9AA0', dashSize: 4, gapSize: 3 })
+        : new THREE.LineBasicMaterial({ color: '#A9A9AE' })}
       onNodeClick={(node) => onSelect(node.id as string)}
       onEngineStop={handleEngineStop}
       warmupTicks={80}

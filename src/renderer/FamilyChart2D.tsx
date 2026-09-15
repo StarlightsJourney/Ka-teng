@@ -14,6 +14,26 @@ type FamilyChart2DProps = {
   expandedIds: ReadonlySet<string>
   onSelect: (personId: string) => void
   onExpand: (personId: string) => void
+  onEdit: (personId: string) => void
+}
+
+type CameraTransform = { x: number; y: number; k: number }
+
+function cameraTarget(chart: ReturnType<typeof f3.createChart>): HTMLElement {
+  return chart.svg.parentNode as HTMLElement
+}
+
+function readCameraTransform(chart: ReturnType<typeof f3.createChart>): CameraTransform | null {
+  const zoom = (cameraTarget(chart) as HTMLElement & { __zoom?: CameraTransform }).__zoom
+  return zoom ? { x: zoom.x, y: zoom.y, k: zoom.k } : null
+}
+
+function restoreCameraTransform(chart: ReturnType<typeof f3.createChart>, transform: CameraTransform): void {
+  const target = cameraTarget(chart) as HTMLElement & { __zoom?: CameraTransform }
+  target.__zoom = transform
+  const value = `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`
+  chart.svg.querySelector('.view')?.setAttribute('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`)
+  chart.cont.querySelector('#htmlSvg .cards_view')?.setAttribute('style', `transform-origin: 0 0; transform: ${value}`)
 }
 
 function escapeHtml(value: string): string {
@@ -29,6 +49,7 @@ function escapeHtml(value: string): string {
 function cardInnerHtml(
   d: TreeDatum,
   peopleById: ReadonlyMap<string, Person>,
+  showAll: boolean,
 ): string {
   if (d.data._new_rel_data) {
     const relation = d.data._new_rel_data
@@ -49,10 +70,11 @@ function cardInnerHtml(
   const avatar = person.avatar
     ? `<img class="kt-avatar-img" src="${escapeHtml(person.avatar)}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.classList.add('is-error')">`
     : ''
-  const hiddenCount = d.data._ktHidden ?? 0
+  const hiddenCount = showAll ? 0 : (d.data._ktHidden ?? 0)
   const more = hiddenCount
     ? `<button class="kt-more" type="button" data-person-id="${escapeHtml(person.id)}" title="${hiddenCount} more — click to explore">+${hiddenCount}</button>`
     : ''
+  const edit = `<button class="kt-edit" type="button" data-person-id="${escapeHtml(person.id)}" aria-label="Edit ${escapeHtml(fullName(person))}" title="Edit">✎</button>`
   return `<div class="card-inner card-rect kt-card kt-${gender}">
     <div class="kt-avatar"><span>${escapeHtml(displayInitials(person))}</span>${avatar}</div>
     <div class="kt-body">
@@ -60,33 +82,49 @@ function cardInnerHtml(
       <div class="kt-life">${escapeHtml(lifespan(person))}</div>
     </div>
     ${more}
+    ${edit}
   </div>`
 }
 
-export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSelect, onExpand }: FamilyChart2DProps) {
+export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
   const onExpandRef = useRef(onExpand)
+  const onEditRef = useRef(onEdit)
+  const peopleRef = useRef(people)
+  const peopleByIdRef = useRef(new Map(people.map((person) => [person.id, person])))
+  const selectedIdRef = useRef(selectedId)
   const expandedIdsRef = useRef(expandedIds)
   const showAllRef = useRef(showAll)
-  const initialSelectedIdRef = useRef(selectedId)
+  const previousShowAllRef = useRef(showAll)
+  const cameraSnapshotRef = useRef<{ transform: CameraTransform; mainId: string; expandedIds: ReadonlySet<string> } | null>(null)
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
   useEffect(() => {
     onExpandRef.current = onExpand
+    onEditRef.current = onEdit
     expandedIdsRef.current = expandedIds
     showAllRef.current = showAll
-  }, [expandedIds, onExpand, showAll])
+    selectedIdRef.current = selectedId
+  }, [expandedIds, onEdit, onExpand, selectedId, showAll])
+
+  useEffect(() => {
+    peopleRef.current = people
+    peopleByIdRef.current = new Map(people.map((person) => [person.id, person]))
+    if (!chartRef.current) return
+    chartRef.current.updateData(toFamilyChartData(people))
+    chartRef.current.updateMainId(selectedIdRef.current ?? 'Q43274')
+    chartRef.current.updateTree({ tree_position: 'inherit' })
+  }, [people])
 
   useEffect(() => {
     if (!containerRef.current) return
     const container = containerRef.current
     container.innerHTML = ''
-    const peopleById = new Map(people.map((person) => [person.id, person]))
     const ancestryHidden = new Map<string, number>()
-    const chart = f3.createChart(container, toFamilyChartData(people) as Data)
+    const chart = f3.createChart(container, toFamilyChartData(peopleRef.current) as Data)
       .setTransitionTime(650)
       .setCardXSpacing(250)
       .setCardYSpacing(150)
@@ -111,11 +149,11 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
           })
         }
       })
-    const card = chart
+    chart
       .setCardHtml()
       .setStyle('rect')
       .setCardInnerHtmlCreator((datum) => {
-        return cardInnerHtml(datum, peopleById)
+        return cardInnerHtml(datum, peopleByIdRef.current, showAllRef.current)
       })
       .setCardDim({ w: 220, h: 60 })
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))
@@ -125,33 +163,55 @@ export function FamilyChart2D({ people, selectedId, showAll, expandedIds, onSele
       const target = event.target
       if (!(target instanceof HTMLElement)) return
       const more = target.closest<HTMLElement>('.kt-more')
-      if (!more) return
+      const edit = target.closest<HTMLElement>('.kt-edit')
+      if (!more && !edit) return
       event.stopPropagation()
-      const personId = more.dataset.personId
-      if (personId) onExpandRef.current(personId)
+      const personId = (more ?? edit)?.dataset.personId
+      if (!personId) return
+      if (edit) onEditRef.current(personId)
+      else onExpandRef.current(personId)
     }
     container.addEventListener('click', handleMoreClick, true)
-    chart
-      .editTree()
-      .setFields(['first name', 'last name', 'birthday'])
-      .setEditFirst(true)
-      .setCardClickOpen(card)
-    chart.updateMainId(initialSelectedIdRef.current ?? people[0]?.id ?? '')
+    chart.updateMainId(selectedIdRef.current ?? 'Q43274')
     chart.updateTree({ initial: true, tree_position: 'fit' })
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
       window.clearTimeout(fitTimer)
       container.removeEventListener('click', handleMoreClick, true)
-      chart.editTreeInstance?.destroy()
       chartRef.current = null
       container.innerHTML = ''
     }
-  }, [people])
+  }, [])
 
   useEffect(() => {
     if (!chartRef.current) return
-    chartRef.current.updateTree({ tree_position: showAll ? 'fit' : 'inherit' })
-  }, [expandedIds, showAll])
+    if (showAllRef.current) return
+    chartRef.current.updateTree({ tree_position: 'inherit' })
+  }, [expandedIds])
+
+  useEffect(() => {
+    if (!chartRef.current || previousShowAllRef.current === showAll) return
+    const chart = chartRef.current
+    if (showAll) {
+      const transform = readCameraTransform(chart)
+      if (transform) {
+        cameraSnapshotRef.current = {
+          transform,
+          mainId: chart.store.getMainId(),
+          expandedIds: new Set(expandedIdsRef.current),
+        }
+      }
+      chart.updateTree({ tree_position: 'fit' })
+    } else {
+      const snapshot = cameraSnapshotRef.current
+      chart.updateMainId(snapshot?.mainId ?? selectedIdRef.current ?? 'Q43274')
+      chart.updateTree({ tree_position: 'inherit' })
+      if (snapshot) {
+        window.setTimeout(() => restoreCameraTransform(chart, snapshot.transform), 0)
+      }
+    }
+    previousShowAllRef.current = showAll
+  }, [showAll])
 
   useEffect(() => {
     if (!chartRef.current || !selectedId) return

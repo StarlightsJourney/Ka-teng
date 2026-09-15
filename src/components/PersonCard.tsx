@@ -1,7 +1,13 @@
 import { displayInitials, fullName, lifespan } from '../element'
 import type { Person } from '../element'
 
-export function PersonCard({ person }: { person: Person }) {
+type PersonCardProps = {
+  person: Person
+  onEdit: () => void
+  onClose: () => void
+}
+
+export function PersonCard({ person, onEdit, onClose }: PersonCardProps) {
   const gender = person.gender === 'M' ? 'Male' : person.gender === 'F' ? 'Female' : 'Unknown'
   const initials = displayInitials(person)
   return (
@@ -13,6 +19,10 @@ export function PersonCard({ person }: { person: Person }) {
       <div className="person-card-copy">
         <strong>{fullName(person)}</strong>
         <span className="person-dates">{gender}{lifespan(person) ? ` · ${lifespan(person)}` : ''}</span>
+      </div>
+      <div className="person-card-actions">
+        <button type="button" className="panel-edit" onClick={onEdit} aria-label="Edit person">✎</button>
+        <button type="button" className="panel-close" onClick={onClose} aria-label="Close details">×</button>
       </div>
     </div>
   )

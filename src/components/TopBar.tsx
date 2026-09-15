@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ThemeMode } from '../theme'
 import { SearchBox } from './SearchBox'
 import { ThemeToggle } from './ThemeToggle'
@@ -10,19 +11,32 @@ type TopBarProps = {
   onSearchSubmit: () => void
   onShowAllChange: (showAll: boolean) => void
   onThemeToggle: () => void
+  shortcut: string
+  inputRef: (input: HTMLInputElement | null) => void
 }
 
 export function TopBar(props: TopBarProps) {
+  const [confirming, setConfirming] = useState(false)
+  const requestShowAll = () => {
+    if (props.showAll) props.onShowAllChange(false)
+    else setConfirming(true)
+  }
   return (
     <header className="top-bar">
-      <div className="brand"><span className="brand-mark">✦</span><span>Ka-teng</span></div>
-      <SearchBox value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} />
+      <div className="brand">Ka-teng</div>
+      <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} shortcut={props.shortcut} />
       <div className="toolbar">
-        <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={() => props.onShowAllChange(!props.showAll)}>
+        <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} onClick={requestShowAll}>
           Show all
         </button>
         <ThemeToggle theme={props.theme} onToggle={props.onThemeToggle} />
       </div>
+      {confirming && !props.showAll && (
+        <div className="show-all-popover" role="dialog">
+          <p>Show the entire tree? 843 people — it can be slow to read.</p>
+          <div><button type="button" onClick={() => { setConfirming(false); props.onShowAllChange(true) }}>Show entire tree</button><button type="button" onClick={() => setConfirming(false)}>Cancel</button></div>
+        </div>
+      )}
     </header>
   )
 }

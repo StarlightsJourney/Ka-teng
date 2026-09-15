@@ -1,16 +1,45 @@
-import type { KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent } from 'react'
+import { displayInitials, fullName } from '../element'
+import type { Person } from '../element'
 
 type SearchBoxProps = {
   value: string
   onChange: (value: string) => void
   onSubmit: () => void
+  suggestions: Person[]
+  onSelect: (id: string) => void
+  onDismiss: () => void
   shortcut: string
   inputRef: (input: HTMLInputElement | null) => void
 }
 
-export function SearchBox({ value, onChange, onSubmit, shortcut, inputRef }: SearchBoxProps) {
+function HighlightedName({ person, query }: { person: Person; query: string }) {
+  const name = fullName(person)
+  const needle = query.trim()
+  if (!needle) return <>{name}</>
+  const index = name.toLocaleLowerCase().indexOf(needle.toLocaleLowerCase())
+  if (index < 0) return <>{name}</>
+  return <>{name.slice(0, index)}<strong>{name.slice(index, index + needle.length)}</strong>{name.slice(index + needle.length)}</>
+}
+
+export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, shortcut, inputRef }: SearchBoxProps) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const selectedIndex = suggestions.length ? Math.min(activeIndex, suggestions.length - 1) : 0
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') onSubmit()
+    if (event.key === 'ArrowDown' && suggestions.length) {
+      event.preventDefault()
+      setActiveIndex((current) => (current + 1) % suggestions.length)
+    } else if (event.key === 'ArrowUp' && suggestions.length) {
+      event.preventDefault()
+      setActiveIndex((current) => (current - 1 + suggestions.length) % suggestions.length)
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      if (suggestions[selectedIndex]) onSelect(suggestions[selectedIndex].id)
+      else onSubmit()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      onDismiss()
+    }
   }
   return (
     <label className="search-box">
@@ -23,6 +52,24 @@ export function SearchBox({ value, onChange, onSubmit, shortcut, inputRef }: Sea
         placeholder="Search people…"
       />
       <kbd>{shortcut}</kbd>
+      {value.trim() && suggestions.length > 0 && (
+        <div className="search-suggestions" role="listbox">
+          {suggestions.map((person, index) => (
+            <button
+              key={person.id}
+              type="button"
+              className={index === selectedIndex ? 'active' : ''}
+              role="option"
+              aria-selected={index === selectedIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onSelect(person.id)}
+            >
+              <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{person.avatar && <img src={person.avatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
+              <span className="suggestion-name"><HighlightedName person={person} query={value} /></span>
+            </button>
+          ))}
+        </div>
+      )}
     </label>
   )
 }

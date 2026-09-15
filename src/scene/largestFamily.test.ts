@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Person } from '../element'
-import { largestFamilyRoot } from './largestFamily'
+import { connectedFamilySize, largestFamilyRoot } from './largestFamily'
 
 const person = (id: string, relationships: Partial<Person> = {}): Person => ({
   id,
@@ -23,5 +23,15 @@ describe('largestFamilyRoot', () => {
 
   it('returns null for an empty collection', () => {
     expect(largestFamilyRoot([])).toBeNull()
+  })
+
+  it('counts only the connected family containing the requested person', () => {
+    const people = [
+      person('one', { spouses: ['two'] }),
+      person('two'),
+      person('three'),
+    ]
+    expect(connectedFamilySize(people, 'one')).toBe(2)
+    expect(connectedFamilySize(people, 'missing')).toBe(0)
   })
 })

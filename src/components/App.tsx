@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { cancelEditing, clearSelection, editPerson, expandPerson, selectPerson, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
+import { cancelEditing, clearSelection, editPerson, expandPerson, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
-import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
+import { connectedFamilySize, largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
 import { useTheme } from '../theme'
 import { DetailsPanel } from './DetailsPanel'
@@ -28,6 +28,10 @@ export function App() {
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
   const matches = useMemo(() => searchPeople(state.query, state.peopleById), [state.query, state.peopleById])
+  const suggestions = matches.slice(0, 8)
+  const currentMainId = state.selectedId ?? defaultMainId
+  const currentMain = currentMainId ? state.peopleById.get(currentMainId) : undefined
+  const familySize = currentMainId ? connectedFamilySize(currentPeople, currentMainId) : 0
   const shortcut = typeof navigator !== 'undefined' && (/Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent)) ? '⌘K' : 'Ctrl K'
 
   useEffect(() => {
@@ -74,6 +78,11 @@ export function App() {
         theme={theme}
         onSearch={(query) => perform(setSearch(query))}
         onSearchSubmit={() => matches[0] && perform(searchAndSelect(state.query))}
+        onSearchSelect={(id) => perform(selectSearchResult(id))}
+        onSearchDismiss={() => { searchInput?.blur(); perform(setSearch('')) }}
+        suggestions={suggestions}
+        familyFirstName={currentMain?.name.first || currentMain?.name.last || currentMain?.id || 'this person'}
+        familySize={familySize}
         onShowAllChange={(showAll) => perform(toggleExpandAll(showAll))}
         onThemeToggle={toggleTheme}
         shortcut={shortcut}

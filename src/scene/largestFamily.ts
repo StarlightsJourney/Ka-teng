@@ -1,6 +1,6 @@
 import type { Person, PersonId } from '../element'
 
-export function largestFamilyRoot(people: readonly Person[]): PersonId | null {
+function familyNeighbors(people: readonly Person[]): Map<PersonId, Set<PersonId>> {
   const peopleById = new Map(people.map((person) => [person.id, person]))
   const neighbors = new Map<PersonId, Set<PersonId>>(
     people.map((person) => [person.id, new Set()]),
@@ -18,7 +18,27 @@ export function largestFamilyRoot(people: readonly Person[]): PersonId | null {
       neighbors.get(relatedId)?.add(person.id)
     }
   }
+  return neighbors
+}
 
+export function connectedFamilySize(people: readonly Person[], personId: PersonId): number {
+  const neighbors = familyNeighbors(people)
+  if (!neighbors.has(personId)) return 0
+  const visited = new Set<PersonId>([personId])
+  const queue = [personId]
+  while (queue.length) {
+    const id = queue.shift() as PersonId
+    for (const relatedId of neighbors.get(id) ?? []) {
+      if (visited.has(relatedId)) continue
+      visited.add(relatedId)
+      queue.push(relatedId)
+    }
+  }
+  return visited.size
+}
+
+export function largestFamilyRoot(people: readonly Person[]): PersonId | null {
+  const neighbors = familyNeighbors(people)
   const visited = new Set<PersonId>()
   let largest: PersonId[] = []
   for (const person of people) {

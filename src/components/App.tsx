@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { cancelEditing, clearSelection, editPerson, expandPerson, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
+import { cancelEditing, clearSelection, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
@@ -9,8 +9,6 @@ import { TopBar } from './TopBar'
 
 const people = loadBigTree()
 const peopleById = new Map(people.map((person) => [person.id, person]))
-const defaultMainId = largestFamilyRoot(people) ?? people[0]?.id ?? null
-
 const initialState: AppState = {
   peopleById,
   selectedId: null,
@@ -27,6 +25,10 @@ export function App() {
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
+  const defaultMainId = useMemo(
+    () => largestFamilyRoot(currentPeople) ?? currentPeople[0]?.id ?? null,
+    [currentPeople],
+  )
   const matches = useMemo(() => searchPeople(state.query, state.peopleById), [state.query, state.peopleById])
   const suggestions = matches.slice(0, 8)
   const currentMainId = state.selectedId ?? defaultMainId
@@ -107,6 +109,7 @@ export function App() {
           onEdit={() => perform(editPerson(selected.id))}
           onCancel={() => perform(cancelEditing())}
           onSave={(patch) => perform(updatePerson(selected.id, patch))}
+          onRemove={() => perform(removePersonAction(selected.id))}
           onClose={() => perform(clearSelection())}
         />}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>

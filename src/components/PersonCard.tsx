@@ -1,4 +1,4 @@
-import { displayInitials, fullName, lifespan } from '../element'
+import { ageOf, displayInitials, fullName, lifespan } from '../element'
 import type { Person } from '../element'
 
 type PersonCardProps = {
@@ -10,6 +10,7 @@ type PersonCardProps = {
 export function PersonCard({ person, onEdit, onClose }: PersonCardProps) {
   const gender = person.gender === 'M' ? 'Male' : person.gender === 'F' ? 'Female' : 'Unknown'
   const initials = displayInitials(person)
+  const age = ageOf(person, new Date())
   return (
     <div className={`person-card gender-stripe-${person.gender.toLowerCase()}`}>
       <div className="person-avatar">
@@ -19,6 +20,7 @@ export function PersonCard({ person, onEdit, onClose }: PersonCardProps) {
       <div className="person-card-copy">
         <strong>{fullName(person)}</strong>
         <span className="person-dates">{gender}{lifespan(person) ? ` · ${lifespan(person)}` : ''}</span>
+        {age !== undefined && <span className="age-line">{person.death || person.deathDate ? `Died aged ${age}` : `Age ${age}`}</span>}
       </div>
       <div className="person-card-actions">
         <button type="button" className="panel-edit" onClick={onEdit} aria-label="Edit person">✎</button>

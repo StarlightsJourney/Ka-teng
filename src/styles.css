@@ -76,6 +76,7 @@ button { color: inherit; }
 .person-card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 0 0 18px; border-bottom: 1px solid var(--border-subtle); }
 .person-avatar { position: relative; display: grid; width: 56px; height: 56px; flex: 0 0 56px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 18px; font-weight: 600; }
 .person-card-copy { display: grid; min-width: 0; gap: 4px; }
+.age-line { margin: 0; color: var(--text-3); font-size: 12px; }
 .person-card-copy strong { display: -webkit-box; overflow: hidden; color: var(--text); font-size: 24px; font-weight: 500; line-height: 1.05; letter-spacing: -.02em; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .person-card-copy strong { font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-weight: 400; letter-spacing: -.03em; }
 .person-dates { overflow: hidden; color: var(--text-3); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
@@ -83,11 +84,31 @@ button { color: inherit; }
 .panel-edit, .panel-close { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; color: var(--text-3); background: transparent; cursor: pointer; font-size: 18px; line-height: 24px; }
 .panel-edit:hover, .panel-close:hover { color: var(--text); background: var(--surface-2); }
 .person-edit { display: grid; gap: 9px; padding-bottom: 18px; border-bottom: 1px solid var(--border-subtle); }
+.edit-section { display: grid; gap: 9px; padding: 10px 0; border-top: 1px solid var(--border-subtle); }
+.edit-section h2 { margin: 0; color: var(--text-3); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .person-edit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; color: var(--text); font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-size: 20px; }
 .person-edit label { display: grid; gap: 4px; color: var(--text-3); font-size: 12px; }
-.person-edit input, .person-edit select { width: 100%; height: 32px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--radius-control); outline: none; color: var(--text); background: var(--surface-solid); }
+.person-edit input, .person-edit select, .person-edit textarea { width: 100%; min-height: 32px; padding: 7px 8px; border: 1px solid var(--border); border-radius: var(--radius-control); outline: none; color: var(--text); background: var(--surface-solid); font: inherit; }
+.person-edit textarea { min-height: 74px; resize: vertical; }
 .person-edit input:focus, .person-edit select:focus { border-color: var(--accent); }
 .person-edit-actions { display: flex; gap: 7px; margin-top: 3px; }
+.photo-edit-row { display: flex; align-items: center; gap: 10px; }
+.photo-edit-row label { flex: 1; }
+.photo-preview { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-2); background: var(--surface-2); font-size: 13px; font-weight: 600; }
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.file-input input { min-height: auto; padding: 5px 0; border: 0; }
+.toggle-row { display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 7px !important; }
+.toggle-row input { width: auto; min-height: auto; }
+.computed-age, .bio-counter { margin: 0; color: var(--text-3); font-size: 12px; }
+.bio-counter { text-align: right; }
+.remove-person-link { justify-self: start; padding: 0; border: 0; color: var(--danger, #b42318); background: transparent; cursor: pointer; font-size: 12px; }
+.remove-confirm { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--danger, #b42318); border-radius: var(--radius-control); }
+.remove-confirm p { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.4; }
+.remove-confirm button { justify-self: start; padding: 6px 9px; border: 1px solid var(--danger, #b42318); border-radius: var(--radius-control); color: #fff; background: var(--danger, #b42318); cursor: pointer; font-size: 12px; }
+.remove-confirm button:disabled { cursor: not-allowed; opacity: .45; }
+.person-extra { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-2); font-size: 13px; line-height: 1.4; }
+.person-extra p { margin: 0; }
+.person-bio { white-space: pre-wrap; }
 .metadata { display: grid; gap: 6px; margin: 16px 0 24px; padding: 0 0 16px; border-bottom: 1px solid var(--border-subtle); }
 .metadata div { display: flex; justify-content: space-between; gap: 12px; color: var(--text-3); font-size: 13px; }
 .metadata dt { color: var(--text-4); }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { updatePerson } from './person'
+import { removePerson, updatePerson } from './person'
 import type { AppState } from './types'
 
 const state: AppState = {
@@ -23,5 +23,19 @@ describe('updatePerson', () => {
       avatar: 'https://example.com/a.jpg',
     })
     expect(next.editing).toBe(false)
+  })
+})
+
+describe('removePerson', () => {
+  it('removes the person and detaches every relationship', () => {
+    const people = [
+      { id: 'one', name: { first: 'One', last: '' }, gender: 'U' as const, parents: ['parent'], spouses: ['two'] },
+      { id: 'two', name: { first: 'Two', last: '' }, gender: 'U' as const, spouses: ['one'], children: ['one'] },
+      { id: 'parent', name: { first: 'Parent', last: '' }, gender: 'U' as const, children: ['one'] },
+    ]
+    expect(removePerson(people, 'one')).toEqual([
+      { id: 'two', name: { first: 'Two', last: '' }, gender: 'U', spouses: [], children: [] },
+      { id: 'parent', name: { first: 'Parent', last: '' }, gender: 'U', children: [] },
+    ])
   })
 })

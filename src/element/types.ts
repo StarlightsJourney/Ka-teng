@@ -15,6 +15,12 @@ export type Person = {
   gender: Gender
   birth?: string
   death?: string
+  birthDate?: string
+  deathDate?: string
+  deceased?: boolean
+  restingPlace?: string
+  altNames?: string[]
+  bio?: string
   avatar?: string
   parents?: PersonId[]
   spouses?: PersonId[]

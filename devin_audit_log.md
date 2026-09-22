@@ -44,6 +44,13 @@ None.
 - Replaced the edit form's ad-hoc button styles with `.btn-primary` / `.btn-secondary`.
 - Updated remove confirmation to use `.btn-danger`.
 
+### Iteration 5 — exit edit mode saves
+
+- Refactored `DetailsPanel` edit form to build a patch object via `buildPatch()`.
+- Made the edit-mode close button (×) save the current draft and close the panel.
+- Added Escape-key handling in edit mode to save the draft and close the panel.
+- Cancel still reverts to read-only mode without saving.
+
 ## Verification commands
 
 ```bash

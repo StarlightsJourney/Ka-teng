@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, sanitizeAvatarUrl } from '../element'
 import type { Gender, Person, PersonMap, RelationshipType } from '../element'
 import type { PersonPatch } from '../actions'
@@ -64,6 +64,20 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
     bio: bio || undefined, avatar: avatar || undefined,
   }), [altNames, avatar, bio, birthDate, birthYear, chinese, deathDate, deathYear, deceased, first, gender, last, person, pinyin, restingPlace])
   const age = ageOf(draft, new Date())
+  const buildPatch = (): PersonPatch => ({
+    first,
+    last,
+    gender,
+    birth: birthYear,
+    death: deathYear,
+    birthDate,
+    deathDate,
+    deceased,
+    restingPlace,
+    altNames: draft.altNames,
+    bio,
+    avatar,
+  })
   const handleUpload = (file: File | undefined) => {
     if (!file) return
     const reader = new FileReader()
@@ -73,12 +87,31 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
     })
     reader.readAsDataURL(file)
   }
+  const handleSaveAndClose = () => {
+    onSave(buildPatch())
+    onClose()
+  }
+  const handleSaveAndCloseRef = useRef(handleSaveAndClose)
+  useEffect(() => {
+    handleSaveAndCloseRef.current = handleSaveAndClose
+  })
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        handleSaveAndCloseRef.current()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
   return (
     <form className="form-sheet" onSubmit={(event) => {
       event.preventDefault()
-      onSave({ first, last, gender, birth: birthYear, death: deathYear, birthDate, deathDate, deceased, restingPlace, altNames: draft.altNames, bio, avatar })
+      onSave(buildPatch())
     }}>
-      <div className="person-edit-header"><strong>Edit person</strong><button type="button" className="panel-close" onClick={onClose} aria-label="Close details">×</button></div>
+      <div className="person-edit-header"><strong>Edit person</strong><button type="button" className="panel-close" onClick={handleSaveAndClose} aria-label="Save and close details">×</button></div>
       <section className="form-section"><h3>Identity</h3>
         <div className="form-row">
           <label>First name<input value={first} onChange={(event) => setFirst(event.target.value)} /></label>

@@ -76,16 +76,24 @@ Ka-teng currently uses read-only JSON source data. There is no runtime persisten
 Agents must run these exact commands before handoff and report results:
 
 ```bash
+npm run validate
+```
+
+`validate` runs lint, unit tests, end-to-end tests, and the production build in sequence. For granular reporting you may also run:
+
+```bash
 npm run lint
 npm test
+npm run test:e2e
 npm run build
 ```
 
 Acceptance criteria:
 
 - `npm run lint` — oxlint passes with no errors.
-- `npm test` — vitest run passes (unit tests in `*.test.ts`).
-- `npm run build` — `tsc -b` and `vite build` succeed.
+- `npm test` — vitest run passes (unit tests in `src/**/*.test.ts`; e2e specs are excluded via `vitest.config.ts`).
+- `npm run test:e2e` — Playwright headless Chromium specs pass (`e2e/**/*.spec.ts`).
+- `npm run build` — `tsc -b` and `vite build` succeed with zero warnings.
 
 If any command fails, classify the blocker (environment, dependency, code, or test data) and report it. Do not mark a feature **Verified** until all three pass locally.
 

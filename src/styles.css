@@ -147,7 +147,17 @@ button { color: inherit; }
 .tree-overflow-toast button { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-2); cursor: pointer; font-size: 11px; }
 .tree-overflow-toast button:hover { color: var(--text); background: var(--surface-3); }
 .tree-overflow-toast button.tree-overflow-close { padding: 0 4px; border: 0; color: var(--text-3); background: transparent; font-size: 16px; line-height: 18px; }
+.chart-loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
+.chart-loading::after { width: 24px; height: 24px; border: 2px solid var(--surface-3); border-top-color: var(--text-3); border-radius: 50%; animation: kt-spin 1s linear infinite; content: ""; }
+.family-chart-host.is-loading { visibility: hidden; }
+@keyframes kt-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .chart-loading::after { animation: none; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 @media (max-width: 760px) {
   .top-bar { width: calc(100% - 24px); }
   .search-box { width: auto; flex: 1 1 auto; }

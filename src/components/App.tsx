@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { cancelEditing, clearSelection, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { loadFriends } from '../data'
 import { friendName } from '../element'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
-import { SocialGraph3D } from '../renderer/SocialGraph3D'
 import { useTheme } from '../theme'
+
+const SocialGraph3D = lazy(() => import('../renderer/SocialGraph3D').then((module) => ({ default: module.SocialGraph3D })))
 import { DetailsPanel } from './DetailsPanel'
 import { FriendPanel } from './FriendPanel'
 import { TopBar } from './TopBar'
@@ -148,7 +149,9 @@ export function App() {
             onSelect={(id) => perform(selectPerson(id))}
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
-          /> : <SocialGraph3D friends={friendGraph.friends} links={friendGraph.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />}
+          /> : <Suspense fallback={<div className="social-graph" role="status"><span className="sr-only">Loading Peng-yu graph…</span></div>}>
+            <SocialGraph3D friends={friendGraph.friends} links={friendGraph.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />
+          </Suspense>}
         </div>
         {mode === 'ka-teng' && selected && <DetailsPanel
           person={selected}

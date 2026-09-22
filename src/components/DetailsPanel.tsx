@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses } from '../element'
+import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, sanitizeAvatarUrl } from '../element'
 import type { Gender, Person, PersonMap } from '../element'
 import type { PersonPatch } from '../actions'
 import { PersonCard } from './PersonCard'
@@ -20,15 +20,18 @@ function RelationList({ people, onSelect }: { people: Person[]; onSelect: (id: s
   if (!people.length) return <p className="empty-relation">None listed</p>
   return (
     <div className="relation-list">
-      {people.map((person) => (
-        <button key={person.id} type="button" className="relation-row" onClick={() => onSelect(person.id)}>
-          <span className="relation-avatar">
-            <span>{displayInitials(person)}</span>
-            {person.avatar && <img src={person.avatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}
-          </span>
-          <span>{fullName(person)}</span>
-        </button>
-      ))}
+      {people.map((person) => {
+        const safeAvatar = sanitizeAvatarUrl(person.avatar)
+        return (
+          <button key={person.id} type="button" className="relation-row" onClick={() => onSelect(person.id)}>
+            <span className="relation-avatar">
+              <span>{displayInitials(person)}</span>
+              {safeAvatar && <img src={safeAvatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}
+            </span>
+            <span>{fullName(person)}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -64,7 +67,8 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
     if (!file) return
     const reader = new FileReader()
     reader.addEventListener('load', () => {
-      if (typeof reader.result === 'string') setAvatar(reader.result)
+      const safe = sanitizeAvatarUrl(typeof reader.result === 'string' ? reader.result : undefined)
+      if (safe) setAvatar(safe)
     })
     reader.readAsDataURL(file)
   }
@@ -83,7 +87,7 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
         <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} /></label>
       </section>
       <section className="edit-section"><h2>Photo</h2>
-        <div className="photo-edit-row"><span className="photo-preview">{avatar ? <img src={avatar} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}</span><label>Photo URL<input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} /></label></div>
+        <div className="photo-edit-row"><span className="photo-preview">{sanitizeAvatarUrl(avatar) ? <img src={sanitizeAvatarUrl(avatar)} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}</span><label>Photo URL<input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} /></label></div>
         <label className="file-input">Upload<input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} /></label>
       </section>
       <section className="edit-section"><h2>Life</h2>

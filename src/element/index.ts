@@ -1,4 +1,5 @@
 export * from './family'
 export * from './person'
+export * from './security'
 export * from './types'
 export * from './friend'

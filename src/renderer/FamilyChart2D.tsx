@@ -3,8 +3,7 @@ import { select, zoomIdentity, zoomTransform, type ZoomBehavior } from 'd3'
 import f3 from 'family-chart'
 import type { Data, TreeDatum } from 'family-chart'
 import 'family-chart/styles/family-chart.css'
-import { displayInitials, fullName, lifespan } from '../element'
-import type { Person } from '../element'
+import { displayInitials, escapeHtml, fullName, lifespan, sanitizeAvatarUrl, type Person } from '../element'
 import { pruneHierarchy } from '../scene'
 import { toFamilyChartData } from './familyChartAdapter'
 
@@ -78,16 +77,6 @@ function centerVisibleTree(
     .call(zoom.transform, target)
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[character] ?? character)
-}
-
 function cardInnerHtml(
   d: TreeDatum,
   peopleById: ReadonlyMap<string, Person>,
@@ -109,8 +98,9 @@ function cardInnerHtml(
   const person = peopleById.get(d.data.id)
   if (!person) return '<div class="card-inner card-rect card-unknown"><div>UNKNOWN</div></div>'
   const gender = person.gender === 'M' ? 'male' : person.gender === 'F' ? 'female' : 'genderless'
-  const avatar = person.avatar
-    ? `<img class="kt-avatar-img" src="${escapeHtml(person.avatar)}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.classList.add('is-error')">`
+  const safeAvatar = sanitizeAvatarUrl(person.avatar)
+  const avatar = safeAvatar
+    ? `<img class="kt-avatar-img" src="${escapeHtml(safeAvatar)}" loading="lazy" referrerpolicy="no-referrer" alt="">`
     : ''
   const hiddenCount = showAll ? 0 : (d.data._ktHidden ?? 0)
   const more = hiddenCount
@@ -143,6 +133,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   const lastSelectionUpdateRef = useRef(0)
   const [overflowToast, setOverflowToast] = useState(false)
   const [zoomedOut, setZoomedOut] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const dismissedToastRef = useRef(false)
   const zoomedOutRef = useRef(false)
   useEffect(() => {
@@ -168,6 +159,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
 
   useEffect(() => {
     if (!containerRef.current) return
+    setIsLoading(true)
     const container = containerRef.current
     container.innerHTML = ''
     const ancestryHidden = new Map<string, number>()
@@ -265,9 +257,16 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       if (edit) onEditRef.current(personId)
       else onExpandRef.current(personId)
     }
+    const handleImageError = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+      if (target.classList.contains('kt-avatar-img')) target.classList.add('is-error')
+    }
     container.addEventListener('click', handleMoreClick, true)
+    container.addEventListener('error', handleImageError, true)
     chart.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chart.updateTree({ initial: true, tree_position: 'fit' })
+    setIsLoading(false)
     window.setTimeout(checkOverflow, 20)
     const fitTimer = window.setTimeout(() => chart.updateTree({ tree_position: 'fit' }), 0)
     return () => {
@@ -277,6 +276,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       resizeObserver?.disconnect()
       window.removeEventListener('resize', resizeChart)
       container.removeEventListener('click', handleMoreClick, true)
+      container.removeEventListener('error', handleImageError, true)
       chartRef.current = null
       container.innerHTML = ''
     }
@@ -344,7 +344,8 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   }
 
   return <div className="family-chart-shell">
-    <div ref={containerRef} className="f3 family-chart-host" aria-label="2D family chart" />
+    <div ref={containerRef} className={`f3 family-chart-host${isLoading ? ' is-loading' : ''}`} aria-label="2D family chart" aria-busy={isLoading} />
+    {isLoading && <div className="chart-loading" role="status"><span className="sr-only">Loading family chart…</span></div>}
     {overflowToast && <div className="tree-overflow-toast" role="status">
       <button type="button" className="tree-overflow-close" aria-label="Dismiss" onClick={() => { dismissedToastRef.current = true; setOverflowToast(false) }}>×</button>
       <span>The tree is larger than your view</span>

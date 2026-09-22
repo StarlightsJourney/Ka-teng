@@ -21,11 +21,18 @@ Open `http://localhost:5173`.
 
 ## Validation commands
 
-Run all three before handoff:
+Run the full validation pipeline before handoff:
+
+```bash
+npm run validate
+```
+
+`validate` runs lint, unit tests, end-to-end tests, and the production build. You can also run them individually:
 
 ```bash
 npm run lint
 npm test
+npm run test:e2e
 npm run build
 ```
 

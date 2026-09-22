@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type FocusEvent } from 'react'
-import { displayInitials, fullName } from '../element'
+import { displayInitials, fullName, sanitizeAvatarUrl } from '../element'
 import type { Person } from '../element'
 
 type SearchBoxProps = {
@@ -68,12 +68,15 @@ export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelec
       <kbd>{shortcut}</kbd>
       {value.trim() && suggestions.length > 0 && !dismissed && (
         <div className="search-suggestions" role="listbox">
-          {suggestions.map((person, index) => (
-            <button key={person.id} type="button" className={index === selectedIndex ? 'active' : ''} role="option" aria-selected={index === selectedIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(person.id)}>
-              <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{person.avatar && <img src={person.avatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
-              <span className="suggestion-name"><HighlightedName person={person} query={value} /></span>
-            </button>
-          ))}
+          {suggestions.map((person, index) => {
+            const safeAvatar = sanitizeAvatarUrl(person.avatar)
+            return (
+              <button key={person.id} type="button" className={index === selectedIndex ? 'active' : ''} role="option" aria-selected={index === selectedIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(person.id)}>
+                <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{safeAvatar && <img src={safeAvatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
+                <span className="suggestion-name"><HighlightedName person={person} query={value} /></span>
+              </button>
+            )
+          })}
         </div>
       )}
     </label>

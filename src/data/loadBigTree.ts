@@ -1,5 +1,6 @@
 import rawPeople from './big-tree.json'
 import type { Gender, Person, PersonId } from '../element'
+import { sanitizeAvatarUrl } from '../element'
 
 type RawPerson = {
   id: PersonId
@@ -50,7 +51,7 @@ export function normalizeWikidata(source: RawPerson[]): Person[] {
       restingPlace: text(data.restingPlace) ?? text(data['resting place']),
       altNames: textList(data.altNames ?? data['alternative names']),
       bio: text(data.bio)?.slice(0, 500),
-      avatar: text(data.avatar) ?? text(data.photo),
+      avatar: sanitizeAvatarUrl(text(data.avatar) ?? text(data.photo) ?? undefined),
       parents: ids([...(rels.parents ?? []), rels.father, rels.mother]),
       spouses: ids(rels.spouses ?? []),
       children: ids(rels.children ?? []),

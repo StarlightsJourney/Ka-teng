@@ -1,4 +1,5 @@
-import type { Gender, Person, PersonId } from '../element'
+import type { Gender, Person, PersonId, RelationshipType } from '../element'
+import { addRelationship } from '../element'
 import type { Action } from './types'
 
 export type PersonPatch = {
@@ -89,5 +90,31 @@ export function removePersonAction(id: PersonId): Action {
       const peopleById = new Map(removePerson([...state.peopleById.values()], id).map((person) => [person.id, person]))
       return { ...state, peopleById, selectedId: null, editing: false, expandedIds: new Set() }
     },
+  }
+}
+
+export function addPerson(person: Person): Action {
+  return {
+    name: `person:add:${person.id}`,
+    perform: (state) => {
+      if (state.peopleById.has(person.id)) return state
+      const peopleById = new Map(state.peopleById)
+      peopleById.set(person.id, person)
+      return { ...state, peopleById, selectedId: person.id, expandedIds: new Set(state.expandedIds) }
+    },
+  }
+}
+
+export function connectPeople(
+  fromId: PersonId,
+  toId: PersonId,
+  relationship: RelationshipType,
+): Action {
+  return {
+    name: `person:connect:${fromId}:${toId}:${relationship}`,
+    perform: (state) => ({
+      ...state,
+      peopleById: addRelationship(state.peopleById, fromId, toId, relationship),
+    }),
   }
 }

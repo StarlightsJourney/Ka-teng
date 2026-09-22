@@ -23,6 +23,7 @@ type TopBarProps = {
   inputRef: (input: HTMLInputElement | null) => void
   mode: AppMode
   onToggleMode: () => void
+  onAddPerson: () => void
   placeholder?: string
   hideShowAll?: boolean
 }
@@ -33,6 +34,7 @@ export function TopBar(props: TopBarProps) {
       <button type="button" className="brand brand-button" onClick={props.onToggleMode} title={props.mode === 'ka-teng' ? 'Switch to Peng-yu' : 'Switch to Ka-teng'} aria-label={props.mode === 'ka-teng' ? 'Switch to Peng-yu friends mode' : 'Switch to Ka-teng family mode'}>{props.mode === 'ka-teng' ? 'Ka-teng' : 'Peng-yu'}</button>
       <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} onSelect={props.onSearchSelect} onDismiss={props.onSearchDismiss} suggestions={props.suggestions} shortcut={props.shortcut} placeholder={props.placeholder} />
       <div className="toolbar">
+        {props.mode === 'ka-teng' && <button type="button" className="add-person-button" onClick={props.onAddPerson} aria-label="Add a person" title="Add a person">+</button>}
         {!props.hideShowAll && <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} title={props.showAll ? 'Show less' : 'Show all'} aria-label={props.showAll ? 'Show less' : 'Show all'} onClick={props.onRequestShowAll}>
           {props.showAll ? 'Show less' : 'Show all'}
         </button>}

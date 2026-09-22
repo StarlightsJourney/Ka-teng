@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { ageOf, displayInitials, formatLifespan, fullName, lifespan } from './person'
+import { ageOf, createPerson, displayInitials, formatLifespan, fullName, lifespan } from './person'
 import type { Person } from './types'
+
+describe('createPerson', () => {
+  it('creates a person with a generated id and trimmed names', () => {
+    const person = createPerson('  Ada  ', '  Lovelace  ', 'F')
+    expect(person.id).toMatch(/^kt-person-/)
+    expect(person.name).toEqual({ first: 'Ada', last: 'Lovelace' })
+    expect(person.gender).toBe('F')
+  })
+
+  it('applies optional fields', () => {
+    const person = createPerson('Grace', 'Hopper', 'F', { bio: 'Pioneer' })
+    expect(person.bio).toBe('Pioneer')
+  })
+})
 
 const person: Person = {
   id: 'p1',

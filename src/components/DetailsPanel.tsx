@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, sanitizeAvatarUrl } from '../element'
-import type { Gender, Person, PersonMap } from '../element'
+import type { Gender, Person, PersonMap, RelationshipType } from '../element'
 import type { PersonPatch } from '../actions'
 import { PersonCard } from './PersonCard'
 
@@ -14,6 +14,7 @@ type DetailsPanelProps = {
   onSave: (patch: PersonPatch) => void
   onRemove: () => void
   onClose: () => void
+  onAddPerson: (relationship: RelationshipType) => void
 }
 
 function RelationList({ people, onSelect }: { people: Person[]; onSelect: (id: string) => void }) {
@@ -104,7 +105,7 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
   )
 }
 
-export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCancel, onSave, onRemove, onClose }: DetailsPanelProps) {
+export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCancel, onSave, onRemove, onClose, onAddPerson }: DetailsPanelProps) {
   const age = ageOf(person, new Date())
   return (
     <aside className="details-panel">
@@ -119,9 +120,21 @@ export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCanc
             {person.restingPlace && <p><strong>Resting place:</strong> {person.restingPlace}</p>}
             {person.bio && <p className="person-bio">{person.bio}</p>}
           </div>}
-          <div className="relationship-section"><h2>Parents</h2><RelationList people={getParents(person, people)} onSelect={onSelect} /></div>
-          <div className="relationship-section"><h2>Spouses</h2><RelationList people={getSpouses(person, people)} onSelect={onSelect} /></div>
-          <div className="relationship-section"><h2>Children</h2><RelationList people={getChildren(person, people)} onSelect={onSelect} /></div>
+          <div className="relationship-section">
+            <h2>Parents</h2>
+            <RelationList people={getParents(person, people)} onSelect={onSelect} />
+            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('parent')}>+ Add parent</button>
+          </div>
+          <div className="relationship-section">
+            <h2>Spouses</h2>
+            <RelationList people={getSpouses(person, people)} onSelect={onSelect} />
+            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('spouse')}>+ Add spouse</button>
+          </div>
+          <div className="relationship-section">
+            <h2>Children</h2>
+            <RelationList people={getChildren(person, people)} onSelect={onSelect} />
+            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('child')}>+ Add child</button>
+          </div>
         </>
       )}
     </aside>

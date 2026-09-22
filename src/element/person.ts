@@ -1,4 +1,24 @@
-import type { Person } from './types'
+import type { Gender, Person, PersonId } from './types'
+
+let nextGeneratedId = 1
+
+export function generatePersonId(): PersonId {
+  return `kt-person-${nextGeneratedId++}`
+}
+
+export function createPerson(
+  first: string,
+  last: string,
+  gender: Gender,
+  options: Partial<Omit<Person, 'id' | 'name' | 'gender'>> = {},
+): Person {
+  return {
+    id: generatePersonId(),
+    name: { first: first.trim(), last: last.trim() },
+    gender,
+    ...options,
+  }
+}
 
 export function fullName(person: Person): string {
   const name = `${person.name.first} ${person.name.last}`.trim()

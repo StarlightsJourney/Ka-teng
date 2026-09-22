@@ -1,15 +1,17 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { cancelEditing, clearSelection, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
+import { addPerson, cancelEditing, clearSelection, connectPeople, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { loadFriends } from '../data'
-import { friendName } from '../element'
+import { friendName, type Person, type RelationshipType } from '../element'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
 import { useTheme } from '../theme'
 
 const SocialGraph3D = lazy(() => import('../renderer/SocialGraph3D').then((module) => ({ default: module.SocialGraph3D })))
+import { AddPersonModal } from './AddPersonModal'
 import { DetailsPanel } from './DetailsPanel'
 import { FriendPanel } from './FriendPanel'
+import { FriendsSidebar } from './FriendsSidebar'
 import { TopBar } from './TopBar'
 
 export type AppMode = 'ka-teng' | 'peng-yu'
@@ -33,6 +35,8 @@ export function App() {
   const [friendSelectedId, setFriendSelectedId] = useState<string | null>(null)
   const [friendQuery, setFriendQuery] = useState('')
   const [showAllConfirming, setShowAllConfirming] = useState(false)
+  const [addingPerson, setAddingPerson] = useState(false)
+  const [addPersonRelationship, setAddPersonRelationship] = useState<RelationshipType | null>(null)
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
@@ -61,6 +65,19 @@ export function App() {
     setFriendSelectedId(null)
     setFriendQuery('')
     perform(setSearch(''))
+  }
+  const handleAddPerson = (person: Person, relationship: RelationshipType | null) => {
+    perform(addPerson(person))
+    if (relationship && selected && selected.id !== person.id) {
+      if (relationship === 'parent') {
+        perform(connectPeople(person.id, selected.id, 'parent'))
+      } else if (relationship === 'child') {
+        perform(connectPeople(selected.id, person.id, 'parent'))
+      } else {
+        perform(connectPeople(selected.id, person.id, 'spouse'))
+      }
+    }
+    setAddingPerson(false)
   }
 
   useEffect(() => {
@@ -135,10 +152,12 @@ export function App() {
         inputRef={setSearchInput}
         mode={mode}
         onToggleMode={toggleMode}
+        onAddPerson={() => setAddingPerson(true)}
         placeholder={mode === 'ka-teng' ? 'Search people…' : 'Search friends…'}
         hideShowAll={mode === 'peng-yu'}
       />
-      <section className="workspace">
+      <section className={`workspace ${mode === 'peng-yu' ? 'peng-yu-layout' : ''}`}>
+        {mode === 'peng-yu' && <FriendsSidebar friends={friendGraph.friends} selectedId={friendSelectedId} onSelect={setFriendSelectedId} />}
         <div className="scene-panel">
           {mode === 'ka-teng' ? <FamilyChart2D
             people={currentPeople}
@@ -163,10 +182,19 @@ export function App() {
           onSave={(patch) => perform(updatePerson(selected.id, patch))}
           onRemove={() => perform(removePersonAction(selected.id))}
           onClose={() => perform(clearSelection())}
+          onAddPerson={(relationship) => { setAddPersonRelationship(relationship); setAddingPerson(true) }}
         />}
         {mode === 'peng-yu' && selectedFriend && <FriendPanel friend={selectedFriend} friends={friendGraph.friends} links={friendGraph.links} onSelect={setFriendSelectedId} onClose={() => setFriendSelectedId(null)} />}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>
+      {addingPerson && mode === 'ka-teng' && (
+        <AddPersonModal
+          anchorPerson={selected}
+          initialRelationship={addPersonRelationship}
+          onClose={() => { setAddingPerson(false); setAddPersonRelationship(null) }}
+          onAdd={handleAddPerson}
+        />
+      )}
     </main>
   )
 }

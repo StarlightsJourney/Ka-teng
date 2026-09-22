@@ -8,7 +8,7 @@ This repo uses agent guidance in `AGENTS.md` and a reusable vertical-slice workf
 
 ## Peng-yu friends mode
 
-Click the Ka-teng wordmark to switch to Peng-yu (朋友), a separate friends-only 3D social graph. Friends are arranged on Dunbar-ring shells, grouped by context, and can be explored with hover, selection, search, and camera controls. Peng-yu never changes the Ka-teng family dataset.
+Click the Ka-teng wordmark to switch to Peng-yu (朋友), a separate friends-only 3D social graph. Friends are arranged on Dunbar-ring shells, grouped by context, and can be explored with hover, selection, search, a left-hand friend list, and camera controls. Peng-yu never changes the Ka-teng family dataset.
 
 ## Quick start
 
@@ -35,6 +35,10 @@ npm test
 npm run test:e2e
 npm run build
 ```
+
+## Adding people
+
+Click the **+** button in the top bar to add a new person, or use the **+ Add parent/spouse/child** buttons in a selected person's details panel. A Mobbin-inspired modal collects identity, photo, life dates, bio, and the relationship to the currently selected person. New people are stored in memory until the page is refreshed.
 
 ## Quick vertical-slice workflow test
 

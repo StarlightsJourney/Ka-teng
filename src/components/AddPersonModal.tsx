@@ -66,15 +66,15 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
       <div className="modal" role="dialog" aria-modal="true" aria-label="Add a person">
-        <form className="modal-form" onSubmit={handleSubmit}>
+        <form className="form-sheet" onSubmit={handleSubmit}>
           <div className="modal-header">
             <h2>Add a person</h2>
             <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
           </div>
 
-          <section className="modal-section">
+          <section className="form-section">
             <h3>Identity</h3>
-            <div className="modal-row">
+            <div className="form-row">
               <label>First name<input value={first} onChange={(event) => setFirst(event.target.value)} placeholder="First name" /></label>
               <label>Last name<input value={last} onChange={(event) => setLast(event.target.value)} placeholder="Last name" /></label>
             </div>
@@ -84,7 +84,7 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
             {touched && !isValid && <p className="modal-error">Please enter a first or last name.</p>}
           </section>
 
-          <section className="modal-section">
+          <section className="form-section">
             <h3>Photo</h3>
             <div className="photo-edit-row">
               <span className="photo-preview">{safeAvatar ? <img src={safeAvatar} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}</span>
@@ -93,20 +93,20 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
             <label className="file-input">Upload photo<input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} /></label>
           </section>
 
-          <section className="modal-section">
+          <section className="form-section">
             <h3>Life</h3>
             <label>Birth date<input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></label>
             <label>Or birth year<input value={birth} onChange={(event) => setBirth(event.target.value)} placeholder="YYYY" /></label>
           </section>
 
-          <section className="modal-section">
+          <section className="form-section">
             <h3>About</h3>
             <label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short biography…" /></label>
             <p className="bio-counter">{bio.length}/500</p>
           </section>
 
           {anchorPerson && (
-            <section className="modal-section">
+            <section className="form-section">
               <h3>Relationship to {fullName(anchorPerson)}</h3>
               <div className="relationship-options">
                 {relationshipOptions.map((option) => (
@@ -129,7 +129,7 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
             </section>
           )}
 
-          <div className="modal-actions">
+          <div className="form-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={!isValid}>Add person</button>
           </div>

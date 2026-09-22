@@ -74,33 +74,43 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
     reader.readAsDataURL(file)
   }
   return (
-    <form className="person-edit" onSubmit={(event) => {
+    <form className="form-sheet" onSubmit={(event) => {
       event.preventDefault()
       onSave({ first, last, gender, birth: birthYear, death: deathYear, birthDate, deathDate, deceased, restingPlace, altNames: draft.altNames, bio, avatar })
     }}>
       <div className="person-edit-header"><strong>Edit person</strong><button type="button" className="panel-close" onClick={onClose} aria-label="Close details">×</button></div>
-      <section className="edit-section"><h2>Identity</h2>
-        <label>First name<input value={first} onChange={(event) => setFirst(event.target.value)} /></label>
-        <label>Last name<input value={last} onChange={(event) => setLast(event.target.value)} /></label>
+      <section className="form-section"><h3>Identity</h3>
+        <div className="form-row">
+          <label>First name<input value={first} onChange={(event) => setFirst(event.target.value)} /></label>
+          <label>Last name<input value={last} onChange={(event) => setLast(event.target.value)} /></label>
+        </div>
         <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="M">Male</option><option value="F">Female</option><option value="X">Other</option><option value="U">Unknown</option></select></label>
         <label>Alternative names<input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Comma-separated names" /></label>
         <label>Chinese name<input value={chinese} onChange={(event) => setChinese(event.target.value)} /></label>
         <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} /></label>
       </section>
-      <section className="edit-section"><h2>Photo</h2>
+      <section className="form-section"><h3>Photo</h3>
         <div className="photo-edit-row"><span className="photo-preview">{sanitizeAvatarUrl(avatar) ? <img src={sanitizeAvatarUrl(avatar)} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}</span><label>Photo URL<input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} /></label></div>
         <label className="file-input">Upload<input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} /></label>
       </section>
-      <section className="edit-section"><h2>Life</h2>
-        <label>Birth date<input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></label>
-        <label>Birth year only<input value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="YYYY" /></label>
+      <section className="form-section"><h3>Life</h3>
+        <div className="form-row">
+          <label>Birth date<input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></label>
+          <label>Birth year only<input value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="YYYY" /></label>
+        </div>
         <label className="toggle-row"><input type="checkbox" checked={deceased} onChange={(event) => setDeceased(event.target.checked)} /> Deceased</label>
-        {deceased && <><label>Death date<input type="date" value={deathDate} onChange={(event) => setDeathDate(event.target.value)} /></label><label>Death year only<input value={deathYear} onChange={(event) => setDeathYear(event.target.value)} placeholder="YYYY" /></label><label>Resting place / cemetery<input value={restingPlace} onChange={(event) => setRestingPlace(event.target.value)} /></label></>}
+        {deceased && <>
+          <div className="form-row">
+            <label>Death date<input type="date" value={deathDate} onChange={(event) => setDeathDate(event.target.value)} /></label>
+            <label>Death year only<input value={deathYear} onChange={(event) => setDeathYear(event.target.value)} placeholder="YYYY" /></label>
+          </div>
+          <label>Resting place / cemetery<input value={restingPlace} onChange={(event) => setRestingPlace(event.target.value)} /></label>
+        </>}
         {age !== undefined && <p className="computed-age">{deceased ? `Died aged ${age}` : `Age ${age}`}</p>}
       </section>
-      <section className="edit-section"><h2>About</h2><label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} /></label><div className="bio-counter">{bio.length}/500</div></section>
-      <div className="person-edit-actions"><button type="submit">Save</button><button type="button" onClick={onCancel}>Cancel</button></div>
-      {!confirmingRemove ? <button type="button" className="remove-person-link" onClick={() => setConfirmingRemove(true)}>Remove person…</button> : <div className="remove-confirm"><p>This removes {fullName(person)} and detaches them from {(person.parents?.length ?? 0) + (person.spouses?.length ?? 0) + (person.children?.length ?? 0)} parents/spouses/children. This cannot be undone. Type their full name to confirm.</p><input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} aria-label="Confirm person removal" /><button type="button" disabled={confirmation !== fullName(person)} onClick={onRemove}>Remove person</button></div>}
+      <section className="form-section"><h3>About</h3><label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} /></label><div className="bio-counter">{bio.length}/500</div></section>
+      <div className="form-actions"><button type="submit" className="btn-primary">Save</button><button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button></div>
+      {!confirmingRemove ? <button type="button" className="remove-person-link" onClick={() => setConfirmingRemove(true)}>Remove person…</button> : <div className="remove-confirm"><p>This removes {fullName(person)} and detaches them from {(person.parents?.length ?? 0) + (person.spouses?.length ?? 0) + (person.children?.length ?? 0)} parents/spouses/children. This cannot be undone. Type their full name to confirm.</p><input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} aria-label="Confirm person removal" /><button type="button" className="btn-danger" disabled={confirmation !== fullName(person)} onClick={onRemove}>Remove person</button></div>}
     </form>
   )
 }

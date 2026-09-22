@@ -37,6 +37,13 @@ None.
 - Created `public/favicon.svg` and `public/ka-teng-icon.svg` inspired by Mobbin's Beside app launch icon (simple connected-people motif).
 - Added `public/manifest.json` and updated `index.html` with favicon, apple-touch-icon, theme-color, and meta description.
 
+### Iteration 4 — unify edit form styles
+
+- Introduced shared `.form-sheet`, `.form-section`, `.form-row`, `.form-actions`, and `.btn-danger` classes.
+- Refactored `AddPersonModal` and `DetailsPanel` edit mode to use the same form styling, inputs, and button hierarchy.
+- Replaced the edit form's ad-hoc button styles with `.btn-primary` / `.btn-secondary`.
+- Updated remove confirmation to use `.btn-danger`.
+
 ## Verification commands
 
 ```bash

@@ -31,6 +31,12 @@ None.
 - Added unit tests for `createPerson`, `addRelationship`, `addPerson`, and `connectPeople`.
 - Added e2e test for adding a new person.
 
+### Iteration 3 — GitHub description and app icon
+
+- Updated README opening line and `package.json` description to a GitHub-ready one-liner.
+- Created `public/favicon.svg` and `public/ka-teng-icon.svg` inspired by Mobbin's Beside app launch icon (simple connected-people motif).
+- Added `public/manifest.json` and updated `index.html` with favicon, apple-touch-icon, theme-color, and meta description.
+
 ## Verification commands
 
 ```bash

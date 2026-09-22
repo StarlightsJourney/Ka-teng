@@ -1,0 +1,17 @@
+{
+  "name": "Ka-teng",
+  "short_name": "Ka-teng",
+  "description": "Open-source family lineage visualiser with a 2D family tree and a friends-only 3D social graph.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#F5F5F7",
+  "icons": [
+    {
+      "src": "/ka-teng-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

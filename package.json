@@ -1,5 +1,6 @@
 {
   "name": "ka-teng",
+  "description": "Open-source family lineage visualiser with a 2D family tree and a friends-only 3D social graph.",
   "private": true,
   "version": "0.0.0",
   "type": "module",

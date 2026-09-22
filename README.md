@@ -1,6 +1,6 @@
 # Ka-teng
 
-Ka-teng is an open-source family lineage visualisation with a navigable 2D family tree powered by [family-chart](https://github.com/donatso/family-chart).
+Ka-teng is an open-source family lineage visualiser: a navigable 2D family tree plus a separate friends-only 3D social graph (Peng-yu 朋友). Built with React, TypeScript, and Vite. Add people, edit details, explore relationships, and switch between family and friend views without mixing the two datasets.
 
 ## Agent entry point
 

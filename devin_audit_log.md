@@ -74,6 +74,14 @@ None.
 - Added e2e coverage for adding a parent and asserting no placeholder ADD card
   appears afterward.
 
+### Iteration 8 — runtime/console regression check
+
+- Added `e2e/console-check.spec.ts` to load Ka-teng, add a person, and load
+  Peng-yu while asserting **zero console errors**.
+- Ran full `npm run validate`: lint, unit tests, e2e tests (8 specs), and build
+  all pass with no warnings.
+- No console errors detected across the three checked flows.
+
 ## Verification commands
 
 ```bash

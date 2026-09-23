@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { createPerson, displayInitials, fullName, sanitizeAvatarUrl, type Gender, type Person, type RelationshipType } from '../element'
+import { createPerson, displayInitials, fullName, parseName, sanitizeAvatarUrl, type Gender, type Person, type RelationshipType } from '../element'
 
 type AddPersonModalProps = {
   anchorPerson?: Person
@@ -21,31 +21,36 @@ const relationshipOptions: { value: RelationshipType; label: string }[] = [
   { value: 'child', label: 'Child' },
 ]
 
+function isDateLike(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
 export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onAdd }: AddPersonModalProps) {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [first, setFirst] = useState('')
-  const [last, setLast] = useState('')
-  const [chinese, setChinese] = useState('')
-  const [pinyin, setPinyin] = useState('')
+  const [name, setName] = useState('')
   const [gender, setGender] = useState<Gender>('U')
-  const [birthDate, setBirthDate] = useState('')
-  const [birth, setBirth] = useState('')
+  const [birthValue, setBirthValue] = useState('')
   const [avatar, setAvatar] = useState('')
-  const [altNames, setAltNames] = useState('')
   const [bio, setBio] = useState('')
   const [relationship, setRelationship] = useState<RelationshipType | null>(initialRelationship ?? (anchorPerson ? 'child' : null))
+  const [showMore, setShowMore] = useState(false)
+  const [chinese, setChinese] = useState('')
+  const [pinyin, setPinyin] = useState('')
+  const [altNames, setAltNames] = useState('')
   const [touched, setTouched] = useState(false)
 
-  const draft = useMemo<Person>(() => createPerson(first, last, gender, {
-    name: { first: first.trim(), last: last.trim(), chinese: chinese.trim() || undefined, pinyin: pinyin.trim() || undefined },
-    birthDate: birthDate || undefined,
-    birth: birth || undefined,
+  const parsedName = useMemo(() => parseName(name), [name])
+  const draft = useMemo<Person>(() => createPerson(parsedName.first, parsedName.last, gender, {
+    name: { first: parsedName.first, last: parsedName.last, chinese: chinese.trim() || undefined, pinyin: pinyin.trim() || undefined },
+    ...(birthValue.trim()
+      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim() } : { birth: birthValue.trim() }
+      : {}),
     bio: bio.slice(0, 500) || undefined,
     avatar: sanitizeAvatarUrl(avatar),
     altNames: altNames.split(',').map((value) => value.trim()).filter(Boolean),
-  }), [altNames, avatar, bio, birth, birthDate, chinese, first, gender, last, pinyin])
+  }), [altNames, avatar, bio, birthValue, chinese, gender, parsedName, pinyin])
 
-  const isValid = Boolean(first.trim() || last.trim())
+  const isValid = Boolean(name.trim())
   const safeAvatar = sanitizeAvatarUrl(avatar)
 
   const handleUpload = (file: File | undefined) => {
@@ -75,55 +80,48 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Add a person">
+      <div className="modal modal-compact" role="dialog" aria-modal="true" aria-label="Add a person">
         <div className="modal-header">
           <h2>{relationshipHeading}</h2>
           <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <form className="form-sheet" onSubmit={handleSubmit}>
           <div className="form-section compact">
-            <div className="photo-edit-row centered">
+            <div className="person-quick-row">
               <button type="button" className="photo-preview" onClick={() => fileRef.current?.click()} aria-label="Upload photo">
                 {safeAvatar ? <img src={safeAvatar} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}
               </button>
               <input ref={fileRef} type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} hidden />
+              <div className="person-quick-fields">
+                <label>Name <span className="required-mark">*</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" autoFocus /></label>
+                <div className="form-row short">
+                  <label>Birth<input value={birthValue} onChange={(event) => setBirthValue(event.target.value)} placeholder="YYYY or date" /></label>
+                  <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
+                    {genders.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select></label>
+                </div>
+              </div>
             </div>
-            <label className="file-upload-label">
-              <input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} />
-              Upload photo
-            </label>
-            <label>Photo URL<input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} placeholder="Image address" /></label>
+            {touched && !isValid && <p className="modal-error">Please enter a name.</p>}
           </div>
 
           <div className="form-section compact">
-            <div className="form-row">
-              <label>First name <span className="field-required">(required)</span><input value={first} onChange={(event) => setFirst(event.target.value)} placeholder="First name" /></label>
-              <label>Last name <span className="field-required">(required)</span><input value={last} onChange={(event) => setLast(event.target.value)} placeholder="Last name" /></label>
-            </div>
-            <div className="form-row">
-              <label>Chinese name <span className="field-optional">(optional)</span><input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
-              <label>Pinyin <span className="field-optional">(optional)</span><input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
-            </div>
-            <div className="form-row short">
-              <label>Also known as <span className="field-optional">(optional)</span><input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
-            </div>
-            <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
-              {genders.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select></label>
-            {touched && !isValid && <p className="modal-error">Please enter a first or last name.</p>}
-          </div>
-
-          <div className="form-section compact">
-            <div className="form-row">
-              <label>Birth date <span className="field-optional">(optional)</span><input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></label>
-              <label>Birth year <span className="field-optional">(optional)</span><input value={birth} onChange={(event) => setBirth(event.target.value)} placeholder="YYYY" pattern="\\d{0,4}" /></label>
-            </div>
-          </div>
-
-          <div className="form-section compact">
-            <label>Bio <span className="field-optional">(optional)</span><textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short biography…" /></label>
+            <label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
             <p className="bio-counter">{bio.length}/500</p>
           </div>
+
+          <button type="button" className="more-details-toggle" onClick={() => setShowMore((current) => !current)} aria-expanded={showMore}>
+            {showMore ? '▾ Fewer details' : '▸ More details'}
+          </button>
+          {showMore && (
+            <div className="form-section compact">
+              <div className="form-row">
+                <label>Chinese name<input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
+                <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
+              </div>
+              <label>Also known as<input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
+            </div>
+          )}
 
           {anchorPerson && (
             <div className="form-section compact">

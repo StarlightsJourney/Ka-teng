@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, sanitizeAvatarUrl } from '../element'
+import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, parseName, sanitizeAvatarUrl } from '../element'
 import type { Gender, Person, PersonMap, RelationshipType } from '../element'
 import type { PersonPatch } from '../actions'
+
+function isDateLike(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
 import { PersonCard } from './PersonCard'
 
 type DetailsPanelProps = {
@@ -46,46 +50,54 @@ function RelationList({ people, type, onSelect, onDisconnect }: { people: Person
 
 function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPreviewRemove, onCancelRemove }: { person: Person; people: PersonMap; onCancel: () => void; onSave: (patch: PersonPatch) => void; onRemove: () => void; onClose: () => void; onPreviewRemove?: (id: string) => void; onCancelRemove?: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [first, setFirst] = useState(person.name.first)
-  const [last, setLast] = useState(person.name.last)
+  const initialName = `${person.name.first} ${person.name.last}`.trim()
+  const [name, setName] = useState(initialName)
   const [gender, setGender] = useState<Gender>(person.gender)
-  const [altNames, setAltNames] = useState((person.altNames ?? []).join(', '))
+  const [birthValue, setBirthValue] = useState(person.birthDate ?? person.birth ?? '')
+  const [avatar, setAvatar] = useState(person.avatar ?? '')
+  const [bio, setBio] = useState(person.bio ?? '')
+  const [showMore, setShowMore] = useState(false)
   const [chinese, setChinese] = useState(person.name.chinese ?? '')
   const [pinyin, setPinyin] = useState(person.name.pinyin ?? '')
-  const [avatar, setAvatar] = useState(person.avatar ?? '')
-  const [birthDate, setBirthDate] = useState(person.birthDate ?? '')
-  const [birthYear, setBirthYear] = useState(person.birthDate ? '' : person.birth ?? '')
+  const [altNames, setAltNames] = useState((person.altNames ?? []).join(', '))
   const [deceased, setDeceased] = useState(person.deceased ?? Boolean(person.deathDate ?? person.death))
-  const [deathDate, setDeathDate] = useState(person.deathDate ?? '')
-  const [deathYear, setDeathYear] = useState(person.deathDate ? '' : person.death ?? '')
+  const [deathValue, setDeathValue] = useState(person.deathDate ?? person.death ?? '')
   const [restingPlace, setRestingPlace] = useState(person.restingPlace ?? '')
-  const [bio, setBio] = useState(person.bio ?? '')
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   useEffect(() => {
     if (confirmingRemove) onPreviewRemove?.(person.id)
     else onCancelRemove?.()
   }, [confirmingRemove, onPreviewRemove, onCancelRemove, person.id])
+  const parsedName = useMemo(() => parseName(name), [name])
   const draft = useMemo<Person>(() => ({
     ...person,
-    name: { ...person.name, first, last, chinese: chinese || undefined, pinyin: pinyin || undefined },
-    gender, birth: birthYear || undefined, death: deathYear || undefined,
-    birthDate: birthDate || undefined, deathDate: deathDate || undefined, deceased,
+    name: { first: parsedName.first, last: parsedName.last, chinese: chinese || undefined, pinyin: pinyin || undefined },
+    gender,
+    ...(birthValue.trim()
+      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim(), birth: undefined } : { birth: birthValue.trim(), birthDate: undefined }
+      : { birth: undefined, birthDate: undefined }),
+    ...(deceased && deathValue.trim()
+      ? isDateLike(deathValue.trim()) ? { deathDate: deathValue.trim(), death: undefined } : { death: deathValue.trim(), deathDate: undefined }
+      : { death: undefined, deathDate: undefined }),
+    deceased,
     restingPlace: restingPlace || undefined,
     altNames: altNames.split(',').map((value) => value.trim()).filter(Boolean),
     bio: bio || undefined, avatar: avatar || undefined,
-  }), [altNames, avatar, bio, birthDate, birthYear, chinese, deathDate, deathYear, deceased, first, gender, last, person, pinyin, restingPlace])
+  }), [altNames, avatar, bio, birthValue, chinese, deathValue, deceased, gender, parsedName, person, pinyin, restingPlace])
   const age = ageOf(draft, new Date())
   const buildPatch = (): PersonPatch => ({
-    first,
-    last,
+    first: parsedName.first,
+    last: parsedName.last,
     chinese,
     pinyin,
     gender,
-    birth: birthYear,
-    death: deathYear,
-    birthDate,
-    deathDate,
+    ...(birthValue.trim()
+      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim(), birth: undefined } : { birth: birthValue.trim(), birthDate: undefined }
+      : { birth: undefined, birthDate: undefined }),
+    ...(deceased && deathValue.trim()
+      ? isDateLike(deathValue.trim()) ? { deathDate: deathValue.trim(), death: undefined } : { death: deathValue.trim(), deathDate: undefined }
+      : { death: undefined, deathDate: undefined }),
     deceased,
     restingPlace,
     altNames: draft.altNames,
@@ -127,51 +139,44 @@ function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPrevi
     }}>
       <div className="person-edit-header"><strong>Edit person</strong><button type="button" className="panel-close" onClick={handleSaveAndClose} aria-label="Save and close details">×</button></div>
       <section className="form-section compact">
-        <div className="form-row">
-          <label>First name <span className="field-required">(required)</span><input value={first} onChange={(event) => setFirst(event.target.value)} placeholder="First name" /></label>
-          <label>Last name <span className="field-required">(required)</span><input value={last} onChange={(event) => setLast(event.target.value)} placeholder="Last name" /></label>
-        </div>
-        <div className="form-row">
-          <label>Chinese name <span className="field-optional">(optional)</span><input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
-          <label>Pinyin <span className="field-optional">(optional)</span><input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
-        </div>
-        <div className="form-row short">
-          <label>Also known as <span className="field-optional">(optional)</span><input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
-        </div>
-        <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="M">Male</option><option value="F">Female</option><option value="X">Other</option><option value="U">Unknown</option></select></label>
-      </section>
-      <section className="form-section compact">
-        <div className="photo-edit-row centered">
+        <div className="person-quick-row">
           <button type="button" className="photo-preview" onClick={() => fileRef.current?.click()} aria-label="Upload photo">
             {sanitizeAvatarUrl(avatar) ? <img src={sanitizeAvatarUrl(avatar)} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} hidden />
-        </div>
-        <label className="file-upload-label">
-          <input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} />
-          Upload photo
-        </label>
-        <label>Photo URL <span className="field-optional">(optional)</span><input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} placeholder="Image address" /></label>
-      </section>
-      <section className="form-section compact">
-        <div className="form-row">
-          <label>Birth date <span className="field-optional">(optional)</span><input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></label>
-          <label>Birth year <span className="field-optional">(optional)</span><input value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="YYYY" pattern="\d{0,4}" /></label>
-        </div>
-        <label className="toggle-row"><input type="checkbox" checked={deceased} onChange={(event) => setDeceased(event.target.checked)} /> Deceased</label>
-        {deceased && <>
-          <div className="form-row">
-            <label>Death date <span className="field-optional">(optional)</span><input type="date" value={deathDate} onChange={(event) => setDeathDate(event.target.value)} /></label>
-            <label>Death year <span className="field-optional">(optional)</span><input value={deathYear} onChange={(event) => setDeathYear(event.target.value)} placeholder="YYYY" pattern="\d{0,4}" /></label>
+          <div className="person-quick-fields">
+            <label>Name <span className="required-mark">*</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" autoFocus /></label>
+            <div className="form-row short">
+              <label>Birth<input value={birthValue} onChange={(event) => setBirthValue(event.target.value)} placeholder="YYYY or date" /></label>
+              <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="M">Male</option><option value="F">Female</option><option value="X">Other</option><option value="U">Unknown</option></select></label>
+            </div>
           </div>
-          <label>Resting place <span className="field-optional">(optional)</span><input value={restingPlace} onChange={(event) => setRestingPlace(event.target.value)} placeholder="Cemetery or memorial" /></label>
-        </>}
-        {age !== undefined && <p className="computed-age">{deceased ? `Died aged ${age}` : `Age ${age}`}</p>}
+        </div>
       </section>
       <section className="form-section compact">
-        <label>Bio <span className="field-optional">(optional)</span><textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short biography…" /></label>
+        <label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
         <p className="bio-counter">{bio.length}/500</p>
       </section>
+      <button type="button" className="more-details-toggle" onClick={() => setShowMore((current) => !current)} aria-expanded={showMore}>
+        {showMore ? '▾ Fewer details' : '▸ More details'}
+      </button>
+      {showMore && (
+        <section className="form-section compact">
+          <div className="form-row">
+            <label>Chinese name<input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
+            <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
+          </div>
+          <label>Also known as<input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
+          <label className="toggle-row"><input type="checkbox" checked={deceased} onChange={(event) => setDeceased(event.target.checked)} /> Deceased</label>
+          {deceased && <>
+            <div className="form-row short">
+              <label>Death<input value={deathValue} onChange={(event) => setDeathValue(event.target.value)} placeholder="YYYY or date" /></label>
+              <label>Resting place<input value={restingPlace} onChange={(event) => setRestingPlace(event.target.value)} placeholder="Cemetery or memorial" /></label>
+            </div>
+          </>}
+        </section>
+      )}
+      {age !== undefined && <p className="computed-age">{deceased ? `Died aged ${age}` : `Age ${age}`}</p>}
       <div className="form-actions"><button type="submit" className="btn-primary">Save</button><button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button></div>
       {!confirmingRemove
         ? <button type="button" className="remove-person-link" onClick={() => setConfirmingRemove(true)}>Remove person…</button>

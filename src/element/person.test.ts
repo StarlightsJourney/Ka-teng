@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ageOf, createPerson, displayInitials, formatLifespan, fullName, lifespan } from './person'
+import { ageOf, createPerson, displayInitials, formatLifespan, fullName, lifespan, parseName } from './person'
 import type { Person } from './types'
 
 describe('createPerson', () => {
@@ -42,5 +42,10 @@ describe('person helpers', () => {
   it('formats date-backed lifespans using years', () => {
     expect(formatLifespan({ ...person, birthDate: '1815-12-10', deathDate: '1852-11-27' })).toBe('★ 1815 † 1852')
     expect(lifespan(person)).toBe('★ 1815 † 1852')
+  })
+
+  it('parses a full name into first and last parts', () => {
+    expect(parseName('Diana Frances Spencer')).toEqual({ first: 'Diana Frances', last: 'Spencer' })
+    expect(parseName('Churchill')).toEqual({ first: 'Churchill', last: '' })
   })
 })

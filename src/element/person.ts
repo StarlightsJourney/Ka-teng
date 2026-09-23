@@ -32,6 +32,14 @@ export function fullName(person: Person): string {
   return name || person.name.chinese || person.name.pinyin || person.id
 }
 
+export function parseName(full: string): { first: string; last: string } {
+  const trimmed = full.trim()
+  const parts = trimmed.split(/\s+/)
+  if (parts.length <= 1) return { first: trimmed, last: '' }
+  const last = parts.at(-1) ?? ''
+  return { first: parts.slice(0, -1).join(' '), last }
+}
+
 function datePart(value: string | undefined): string | undefined {
   return value?.match(/^\d{4}(?:-\d{2}(?:-\d{2})?)?$/)?.[0]
 }

@@ -101,17 +101,23 @@ button { color: inherit; }
 .form-row.short { grid-template-columns: 1fr; }
 .form-sheet label { display: grid; gap: 4px; color: var(--text-3); font-size: 12px; }
 .form-sheet input, .form-sheet select, .form-sheet textarea { width: 100%; min-height: 32px; padding: 7px 8px; border: 1px solid var(--border); border-radius: var(--radius-control); outline: none; color: var(--text); background: var(--surface-solid); font: inherit; }
-.form-sheet textarea { min-height: 74px; resize: vertical; }
-.field-required { color: var(--accent); font-weight: 500; }
-.field-optional { color: var(--text-4); font-weight: 400; }
+.form-sheet textarea { min-height: 54px; resize: vertical; }
+.required-mark { color: var(--accent); font-weight: 600; }
 .form-sheet input:focus, .form-sheet select:focus, .form-sheet textarea:focus { border-color: var(--accent); }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
+
+/* Person quick row: avatar + core fields */
+.person-quick-row { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.person-quick-fields { display: grid; gap: 8px; }
+.person-quick-fields label { margin: 0; }
+.person-quick-fields .form-row { gap: 8px; }
+.more-details-toggle { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 0; border: 0; color: var(--text-3); background: transparent; cursor: pointer; font-size: 12px; }
+.more-details-toggle:hover { color: var(--text); }
 
 /* Legacy edit header inside details panel */
 .person-edit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; color: var(--text); font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-size: 20px; }
 .photo-edit-row { display: flex; align-items: center; gap: 10px; }
 .photo-edit-row.centered { justify-content: center; }
-.photo-edit-row label { flex: 1; }
 .photo-preview { display: grid; width: 64px; height: 64px; flex: 0 0 64px; place-items: center; overflow: hidden; border: 0; border-radius: 50%; color: var(--text-2); background: var(--surface-2); cursor: pointer; font-size: 18px; font-weight: 600; transition: transform .1s ease, box-shadow .15s ease; }
 .photo-preview:hover { transform: scale(1.03); box-shadow: var(--shadow-card); }
 .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
@@ -120,7 +126,7 @@ button { color: inherit; }
 .toggle-row input { width: auto; min-height: auto; }
 .computed-age, .bio-counter { margin: 0; color: var(--text-3); font-size: 12px; }
 .bio-counter { text-align: right; }
-.form-section .photo-edit-row { justify-self: center; }
+.form-section .photo-edit-row { justify-self: start; }
 .remove-person-link { justify-self: start; padding: 0; border: 0; color: var(--danger, #b42318); background: transparent; cursor: pointer; font-size: 12px; }
 .remove-confirm { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--danger, #b42318); border-radius: var(--radius-control); }
 .remove-confirm p { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.4; }
@@ -176,8 +182,6 @@ button { color: inherit; }
 .modal-header h2 { margin: 0; font-family: Newsreader, "Iowan Old Style", Georgia, serif; font-size: 22px; font-weight: 400; }
 .modal-error { margin: 0; color: var(--danger, #b42318); font-size: 12px; }
 .form-sheet input[type="file"] { position: absolute; width: 0; height: 0; opacity: 0; }
-.file-upload-label { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-2); background: var(--surface-2); cursor: pointer; font-size: 12px; }
-.file-upload-label:hover { color: var(--text); background: var(--surface-3); }
 
 /* Buttons */
 .btn-primary, .btn-secondary { min-height: 32px; padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); cursor: pointer; font-size: 13px; font-weight: 500; transition: transform .1s ease, background .15s ease; }

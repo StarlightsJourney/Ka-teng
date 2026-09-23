@@ -191,6 +191,23 @@ None.
 - Full `npm run validate` passes: 0 lint warnings, 38 unit tests, 9 e2e tests,
   zero-warning build.
 
+### Iteration 14 — even leaner add/edit form
+
+- Removed the separate "Upload photo" label and "Photo URL" field from the add
+  and edit forms. Photo upload now happens only by clicking the avatar preview.
+- Replaced First name / Last name with a single **Name** field; the last word is
+  treated as the last name.
+- Switched required/optional markers to a discreet red asterisk (`*`) on the
+  required field only.
+- Collapsed Chinese name, Pinyin, aliases (and death/resting place in edit)
+  behind a **More details** toggle within the same form.
+- Consolidated Birth date + Birth year into one simple **Birth** field that
+  accepts a year (`YYYY`) or a full date (`YYYY-MM-DD`).
+- Kept Bio as a short optional description.
+- Updated e2e tests to use the new single name input.
+- Full `npm run validate` passes: 0 lint warnings, 39 unit tests, 9 e2e tests,
+  zero-warning build.
+
 ## Verification commands
 
 ```bash

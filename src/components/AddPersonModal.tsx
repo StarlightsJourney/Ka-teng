@@ -66,12 +66,11 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
       <div className="modal" role="dialog" aria-modal="true" aria-label="Add a person">
+        <div className="modal-header">
+          <h2>Add a person</h2>
+          <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
         <form className="form-sheet" onSubmit={handleSubmit}>
-          <div className="modal-header">
-            <h2>Add a person</h2>
-            <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
-          </div>
-
           <section className="form-section">
             <h3>Identity</h3>
             <div className="form-row">
@@ -90,7 +89,10 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
               <span className="photo-preview">{safeAvatar ? <img src={safeAvatar} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}</span>
               <label>Photo URL<input value={avatar.startsWith('data:') ? '' : avatar} onChange={(event) => setAvatar(event.target.value)} placeholder="https://…" /></label>
             </div>
-            <label className="file-input">Upload photo<input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} /></label>
+            <label className="file-upload-label">
+              <input type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} />
+              Upload photo
+            </label>
           </section>
 
           <section className="form-section">
@@ -129,7 +131,7 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
             </section>
           )}
 
-          <div className="form-actions">
+          <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={!isValid}>Add person</button>
           </div>

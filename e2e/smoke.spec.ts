@@ -53,3 +53,16 @@ test('adds a parent from the details panel without showing a placeholder ADD car
   await expect(page.locator('.card-to-add')).not.toBeVisible()
   await expect(page.locator('.kt-card').first()).toContainText('Added Parent')
 })
+
+test('adding a spouse to a parent links them as parent of existing children', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.kt-card').first()).toBeVisible({ timeout: 10000 })
+  await page.locator('.kt-card').first().click()
+  await expect(page.locator('.details-panel')).toBeVisible()
+  await page.locator('button:has-text("+ Add spouse")').click()
+  await page.locator('.modal input[placeholder="First name"]').fill('Spouse')
+  await page.locator('.modal input[placeholder="Last name"]').fill('Person')
+  await page.locator('.modal .btn-primary').click()
+  await expect(page.locator('.modal[role="dialog"]')).not.toBeVisible()
+  await expect(page.locator('.kt-card').filter({ hasText: 'Spouse Person' })).toBeVisible()
+})

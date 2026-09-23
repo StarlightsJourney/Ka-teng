@@ -82,6 +82,20 @@ None.
   all pass with no warnings.
 - No console errors detected across the three checked flows.
 
+### Iteration 9 — compact themed modal and marriage/child tree wiring
+
+- Restyled `AddPersonModal` and `FriendModal` to follow `docs/DESIGN_SYSTEM.md`:
+  - Header + scrollable body + fixed action footer so buttons are always visible
+    and the scrollbar is confined to the body, not a giant full-modal scrollbar.
+  - Tighter padding/gaps, smaller textarea, themed file-upload button.
+  - Consistent `.btn-primary` / `.btn-secondary` / `.btn-danger` styling.
+- Fixed spouse/parent wiring so the tree renders as a married couple:
+  - Adding a **spouse** to a parent now also makes that spouse a parent of the
+    parent's existing children.
+  - Adding a **parent** to a child that already has another parent now also
+    connects the new parent as a spouse of the existing parent.
+- Added e2e coverage for the spouse-as-parent flow.
+
 ## Verification commands
 
 ```bash

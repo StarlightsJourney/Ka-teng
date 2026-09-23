@@ -66,11 +66,11 @@ export function FriendModal({ friend, onClose, onSave, onRemove }: FriendModalPr
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
       <div className="modal friend-modal" role="dialog" aria-modal="true" aria-label={isEditing ? 'Edit friend' : 'Add a friend'}>
+        <div className="modal-header">
+          <h2>{isEditing ? 'Edit friend' : 'Add a friend'}</h2>
+          <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
         <form className="form-sheet" onSubmit={handleSubmit}>
-          <div className="modal-header">
-            <h2>{isEditing ? 'Edit friend' : 'Add a friend'}</h2>
-            <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
-          </div>
 
           <section className="form-section">
             <h3>Identity</h3>
@@ -114,7 +114,7 @@ export function FriendModal({ friend, onClose, onSave, onRemove }: FriendModalPr
             <p className="bio-counter">{note.length}/300</p>
           </section>
 
-          <div className="form-actions">
+          <div className="modal-actions">
             {isEditing && onRemove && (
               <button type="button" className="btn-danger" onClick={() => confirmingRemove ? onRemove() : setConfirmingRemove(true)}>
                 {confirmingRemove ? 'Confirm remove' : 'Remove'}

@@ -48,7 +48,7 @@ None.
 
 - Refactored `DetailsPanel` edit form to build a patch object via `buildPatch()`.
 - Made the edit-mode close button (×) save the current draft and close the panel.
-- Added Escape-key handling in edit mode to save the draft and close the panel.
+- Escape in edit mode cancels and reverts to read-only mode.
 - Cancel still reverts to read-only mode without saving.
 
 ### Iteration 6 — mobile layout, Peng-yu cleanup, friend editing
@@ -61,6 +61,18 @@ None.
 - Peng-yu graph: replaced hardcoded context colors with Ka-teng token palette, cleaner node sprites with radial gradients, subtler links (no particles), lower base opacity.
 - Friend editing: added `src/actions/friend.ts`, `FriendModal`, in-memory friend state in App, edit/remove in `FriendPanel`, and add buttons in `TopBar` and `FriendsSidebar`.
 - Added context chip selectors in `FriendModal`.
+
+### Iteration 7 — remove confusing ADD cards and stabilize Ka-teng
+
+- Disabled family-chart's built-in single-parent empty "ADD" placeholder cards via
+  `setSingleParentEmptyCard(false)` so new relatives are only added through the
+  explicit "+ Add parent/spouse/child" buttons in the details panel.
+- Confirmed family-chart cards already render avatar images when available; the
+  confusing ADD placeholders were the visual blocker.
+- Changed Escape behavior in edit mode to cancel instead of save, making the
+  interaction more predictable.
+- Added e2e coverage for adding a parent and asserting no placeholder ADD card
+  appears afterward.
 
 ## Verification commands
 

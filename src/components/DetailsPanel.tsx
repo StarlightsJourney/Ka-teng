@@ -91,16 +91,16 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
     onSave(buildPatch())
     onClose()
   }
-  const handleSaveAndCloseRef = useRef(handleSaveAndClose)
+  const handleCancelRef = useRef(onCancel)
   useEffect(() => {
-    handleSaveAndCloseRef.current = handleSaveAndClose
+    handleCancelRef.current = onCancel
   })
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopPropagation()
-        handleSaveAndCloseRef.current()
+        handleCancelRef.current()
       }
     }
     window.addEventListener('keydown', onKeyDown, true)

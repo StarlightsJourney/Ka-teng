@@ -175,6 +175,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       .setTransitionTime(650)
       .setCardXSpacing(250)
       .setCardYSpacing(150)
+      .setSingleParentEmptyCard(false)
       .setModifyTreeHierarchy((root, isAncestry) => {
         if (showAllRef.current) return
         const hierarchyRoot = root as unknown as Parameters<typeof pruneHierarchy>[0]

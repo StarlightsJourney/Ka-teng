@@ -26,18 +26,6 @@ test('theme toggle switches data-theme attribute', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })
 
-test('adds a new person through the top-bar button', async ({ page }) => {
-  await page.goto('/')
-  await page.locator('.add-person-button').click()
-  await expect(page.locator('.modal[role="dialog"]')).toBeVisible()
-  await page.locator('.modal input[placeholder="First name"]').fill('Test')
-  await page.locator('.modal input[placeholder="Last name"]').fill('Person')
-  await page.locator('.modal .btn-primary').click()
-  await expect(page.locator('.modal[role="dialog"]')).not.toBeVisible()
-  await expect(page.locator('.details-panel')).toBeVisible()
-  await expect(page.locator('.details-panel')).toContainText('Test Person')
-})
-
 test('adds a parent from the details panel without showing a placeholder ADD card', async ({ page }) => {
   await page.goto('/')
   const firstCard = page.locator('.kt-card').first()

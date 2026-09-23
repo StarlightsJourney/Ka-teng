@@ -1,4 +1,4 @@
-import type { Gender, Person, PersonId } from './types'
+import type { Gender, Person, PersonId, PersonName } from './types'
 
 let nextGeneratedId = 1
 
@@ -10,13 +10,20 @@ export function createPerson(
   first: string,
   last: string,
   gender: Gender,
-  options: Partial<Omit<Person, 'id' | 'name' | 'gender'>> = {},
+  options: Partial<Omit<Person, 'id' | 'name' | 'gender'>> & { name?: Partial<PersonName> } = {},
 ): Person {
+  const nameOptions = options.name ?? {}
+  const { name: _, ...rest } = options
   return {
     id: generatePersonId(),
-    name: { first: first.trim(), last: last.trim() },
+    name: {
+      first: nameOptions.first ?? first.trim(),
+      last: nameOptions.last ?? last.trim(),
+      chinese: nameOptions.chinese,
+      pinyin: nameOptions.pinyin,
+    },
     gender,
-    ...options,
+    ...rest,
   }
 }
 

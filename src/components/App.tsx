@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addPerson, cancelEditing, clearSelection, connectPeople, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
+import { addPerson, cancelEditing, clearSelection, connectPeople, disconnectPeople, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { type Person, type RelationshipType } from '../element'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
@@ -30,6 +30,7 @@ export function App() {
   const [addingPerson, setAddingPerson] = useState(false)
   const [addPersonRelationship, setAddPersonRelationship] = useState<RelationshipType | null>(null)
   const [connectingRelationship, setConnectingRelationship] = useState<RelationshipType | null>(null)
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null)
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
@@ -62,6 +63,17 @@ export function App() {
   const handleConnectPerson = (personId: string, relationship: RelationshipType) => {
     if (!selected) return
     perform(connectPeople(selected.id, personId, relationship))
+    setConnectingRelationship(null)
+  }
+  const handleDisconnectPerson = (personId: string, relationship: RelationshipType) => {
+    if (!selected) return
+    perform(disconnectPeople(selected.id, personId, relationship))
+  }
+  const handleRemovePerson = () => {
+    if (!selected) return
+    perform(removePersonAction(selected.id))
+    setPendingRemoveId(null)
+    setAddingPerson(false)
     setConnectingRelationship(null)
   }
 
@@ -119,7 +131,6 @@ export function App() {
         onThemeToggle={toggleTheme}
         shortcut={shortcut}
         inputRef={setSearchInput}
-        onAddPerson={() => setAddingPerson(true)}
       />
       <section className="workspace">
         <div className="scene-panel">
@@ -129,6 +140,7 @@ export function App() {
             selectedId={state.selectedId}
             showAll={state.showAll}
             expandedIds={state.expandedIds}
+            pendingRemoveId={pendingRemoveId}
             onSelect={(id) => perform(selectPerson(id))}
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
@@ -142,10 +154,13 @@ export function App() {
           onEdit={() => perform(editPerson(selected.id))}
           onCancel={() => perform(cancelEditing())}
           onSave={(patch) => perform(updatePerson(selected.id, patch))}
-          onRemove={() => perform(removePersonAction(selected.id))}
+          onRemove={handleRemovePerson}
           onClose={() => perform(clearSelection())}
           onAddPerson={(relationship) => { setAddPersonRelationship(relationship); setAddingPerson(true) }}
           onConnectPerson={(relationship) => setConnectingRelationship(relationship)}
+          onDisconnectPerson={(id, relationship) => handleDisconnectPerson(id, relationship)}
+          onPreviewRemove={setPendingRemoveId}
+          onCancelRemove={() => setPendingRemoveId(null)}
         />}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>

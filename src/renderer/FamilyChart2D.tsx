@@ -13,6 +13,7 @@ type FamilyChart2DProps = {
   selectedId: string | null
   showAll: boolean
   expandedIds: ReadonlySet<string>
+  pendingRemoveId?: string | null
   onSelect: (personId: string) => void
   onExpand: (personId: string) => void
   onEdit: (personId: string) => void
@@ -81,6 +82,7 @@ function cardInnerHtml(
   d: TreeDatum,
   peopleById: ReadonlyMap<string, Person>,
   showAll: boolean,
+  removingIds: ReadonlySet<string>,
 ): string {
   if (d.data._new_rel_data) {
     const relation = d.data._new_rel_data
@@ -107,7 +109,8 @@ function cardInnerHtml(
     ? `<button class="kt-more" type="button" data-person-id="${escapeHtml(person.id)}" title="${hiddenCount} more — click to explore">+${hiddenCount}</button>`
     : ''
   const edit = `<button class="kt-edit" type="button" data-person-id="${escapeHtml(person.id)}" aria-label="Edit ${escapeHtml(fullName(person))}" title="Edit">✎</button>`
-  return `<div class="card-inner card-rect kt-card kt-${gender}">
+  const removeClass = removingIds.has(person.id) ? ' kt-removing' : ''
+  return `<div class="card-inner card-rect kt-card kt-${gender}${removeClass}">
     <div class="kt-avatar"><span>${escapeHtml(displayInitials(person))}</span>${avatar}</div>
     <div class="kt-body">
       <div class="kt-name">${escapeHtml(fullName(person))}</div>
@@ -118,7 +121,7 @@ function cardInnerHtml(
   </div>`
 }
 
-export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
+export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expandedIds, pendingRemoveId, onSelect, onExpand, onEdit }: FamilyChart2DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof f3.createChart> | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -136,6 +139,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   const [isLoading, setIsLoading] = useState(true)
   const dismissedToastRef = useRef(false)
   const zoomedOutRef = useRef(false)
+  const removingIdsRef = useRef(new Set<string>())
   useEffect(() => {
     onSelectRef.current = onSelect
   }, [onSelect])
@@ -157,6 +161,17 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
     chartRef.current.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chartRef.current.updateTree({ tree_position: 'inherit' })
   }, [defaultMainId, people])
+
+  useEffect(() => {
+    const target = pendingRemoveId
+      ? peopleByIdRef.current.get(pendingRemoveId)
+      : undefined
+    removingIdsRef.current = target
+      ? new Set([target.id, ...(target.parents ?? []), ...(target.spouses ?? []), ...(target.children ?? [])])
+      : new Set<string>()
+    if (!chartRef.current) return
+    chartRef.current.updateTree({ tree_position: 'inherit', transition_time: 0 })
+  }, [pendingRemoveId])
 
   useEffect(() => {
     if (!overflowToast || zoomedOut) return
@@ -201,7 +216,7 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       .setCardHtml()
       .setStyle('rect')
       .setCardInnerHtmlCreator((datum) => {
-        return cardInnerHtml(datum, peopleByIdRef.current, showAllRef.current)
+        return cardInnerHtml(datum, peopleByIdRef.current, showAllRef.current, removingIdsRef.current)
       })
       .setCardDim({ w: 220, h: 60 })
       .setOnCardClick((_event: MouseEvent, datum: TreeDatum) => onSelectRef.current(datum.data.id))

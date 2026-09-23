@@ -20,7 +20,6 @@ type TopBarProps = {
   onThemeToggle: () => void
   shortcut: string
   inputRef: (input: HTMLInputElement | null) => void
-  onAddPerson: () => void
 }
 
 export function TopBar(props: TopBarProps) {
@@ -39,7 +38,6 @@ export function TopBar(props: TopBarProps) {
         placeholder="Search people…"
       />
       <div className="toolbar">
-        <button type="button" className="add-person-button" onClick={props.onAddPerson} aria-label="Add a person" title="Add a person">+</button>
         <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} title={props.showAll ? 'Show less' : 'Show all'} aria-label={props.showAll ? 'Show less' : 'Show all'} onClick={props.onRequestShowAll}>
           {props.showAll ? 'Show less' : 'Show all'}
         </button>

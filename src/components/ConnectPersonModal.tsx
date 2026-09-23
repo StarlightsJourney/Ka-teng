@@ -49,14 +49,17 @@ export function ConnectPersonModal({ selected, people, relationship, onClose, on
           <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <form className="form-sheet" onSubmit={handleSubmit}>
-          <section className="form-section">
-            <h3>Relationship</h3>
-            <div className="relationship-options">
+          <section className="form-section compact">
+            <div className="relationship-options clean">
               {(['parent', 'spouse', 'child'] as RelationshipType[]).map((type) => (
-                <label key={type} className={`relationship-option ${chosen === type ? 'active' : ''}`}>
-                  <input type="radio" name="relationship" value={type} checked={chosen === type} onChange={() => { setChosen(type); setCandidateId(null) }} />
+                <button
+                  key={type}
+                  type="button"
+                  className={`relationship-option ${chosen === type ? 'active' : ''}`}
+                  onClick={() => { setChosen(type); setCandidateId(null) }}
+                >
                   {type}
-                </label>
+                </button>
               ))}
             </div>
           </section>

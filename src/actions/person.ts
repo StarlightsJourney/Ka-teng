@@ -1,10 +1,12 @@
 import type { Gender, Person, PersonId, RelationshipType } from '../element'
-import { addRelationship } from '../element'
+import { addRelationship, disconnectRelationship } from '../element'
 import type { Action } from './types'
 
 export type PersonPatch = {
   first?: string
   last?: string
+  chinese?: string
+  pinyin?: string
   gender?: Gender
   birth?: string
   death?: string
@@ -52,6 +54,8 @@ export function updatePerson(id: PersonId, patch: PersonPatch): Action {
           ...person.name,
           ...(patch.first === undefined ? {} : { first: patch.first }),
           ...(patch.last === undefined ? {} : { last: patch.last }),
+          ...(patch.chinese === undefined ? {} : { chinese: patch.chinese || undefined }),
+          ...(patch.pinyin === undefined ? {} : { pinyin: patch.pinyin || undefined }),
         },
         ...(patch.gender === undefined ? {} : { gender: patch.gender }),
         ...(patch.birth === undefined ? {} : { birth: patch.birth || undefined }),
@@ -115,6 +119,20 @@ export function connectPeople(
     perform: (state) => ({
       ...state,
       peopleById: addRelationship(state.peopleById, fromId, toId, relationship),
+    }),
+  }
+}
+
+export function disconnectPeople(
+  fromId: PersonId,
+  toId: PersonId,
+  relationship: RelationshipType,
+): Action {
+  return {
+    name: `person:disconnect:${fromId}:${toId}:${relationship}`,
+    perform: (state) => ({
+      ...state,
+      peopleById: disconnectRelationship(state.peopleById, fromId, toId, relationship),
     }),
   }
 }

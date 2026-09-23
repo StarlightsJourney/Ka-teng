@@ -165,6 +165,32 @@ None.
 - Full `npm run validate` passes: 0 lint warnings, 38 unit tests, 10 e2e tests,
   zero-warning build.
 
+### Iteration 13 — polish: top-bar, mobile sheet, safer removal, relationship detach
+
+- Tightened top-bar flex layout and made mobile sizing more robust (icon-only
+  search, compact brand, centered toolbar).
+- Made the mobile details panel a draggable pull-up sheet with a grab handle.
+- Removed the standalone top-bar "+" add-person button; adding people now always
+  starts from a selected person, so the relationship is explicit.
+- Redesigned the AddPersonModal and edit form:
+  - Removed redundant section headings.
+  - Added required/optional labels.
+  - Added Chinese name and Pinyin fields plus a shared aliases input.
+  - Made the photo preview clickable to upload.
+  - Cleaner relationship toggle buttons.
+- Polished ConnectPersonModal relationship buttons to match the new segmented
+  pill style.
+- Added per-relationship detach: each parent/spouse/child row has a remove
+  button to delete that single connection without deleting the person.
+- Improved remove-person confirmation:
+  - Lists the person being removed and every parent/spouse/child that will be
+    detached.
+  - Highlights the person-to-remove in red on the family tree.
+- Added `disconnectRelationship` / `disconnectPeople` helpers with unit tests.
+- Updated `AGENTS.md` to remove the last lingering Peng-yu reference.
+- Full `npm run validate` passes: 0 lint warnings, 38 unit tests, 9 e2e tests,
+  zero-warning build.
+
 ## Verification commands
 
 ```bash

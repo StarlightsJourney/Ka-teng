@@ -89,6 +89,33 @@ export function addRelationship(
 
 
 
+export function disconnectRelationship(
+  people: PersonMap,
+  fromId: PersonId,
+  toId: PersonId,
+  type: RelationshipType,
+): PersonMap {
+  const from = people.get(fromId)
+  const to = people.get(toId)
+  if (!from || !to) return people
+  const next = new Map(people)
+  const updateFrom = { ...from }
+  const updateTo = { ...to }
+  if (type === 'parent') {
+    updateFrom.children = unique((from.children ?? []).filter((id) => id !== toId))
+    updateTo.parents = unique((to.parents ?? []).filter((id) => id !== fromId))
+  } else if (type === 'child') {
+    updateFrom.parents = unique((from.parents ?? []).filter((id) => id !== toId))
+    updateTo.children = unique((to.children ?? []).filter((id) => id !== fromId))
+  } else {
+    updateFrom.spouses = unique((from.spouses ?? []).filter((id) => id !== toId))
+    updateTo.spouses = unique((to.spouses ?? []).filter((id) => id !== fromId))
+  }
+  next.set(fromId, updateFrom)
+  next.set(toId, updateTo)
+  return next
+}
+
 export function getParents(person: Person, people: PersonMap): Person[] {
   return existingPeople(parentIds(person), people)
 }

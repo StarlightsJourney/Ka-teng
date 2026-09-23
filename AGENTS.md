@@ -21,7 +21,7 @@ If the design system is not yet documented in `docs/DESIGN_SYSTEM.md`, the first
 
 ## How we work
 
-- **Parallelize independent workstreams by default.** Family-chart rendering, Peng-yu social graph, search, and details-panel editing can evolve independently as long as contracts in `src/element/` and `src/actions/` stay stable.
+- **Parallelize independent workstreams by default.** Family-chart rendering, search, details-panel editing, and theme/shell can evolve independently as long as contracts in `src/element/` and `src/actions/` stay stable.
 - **Be self-critical:** question whether a feature is usable, not just whether it compiles. Prefer UX over UI polish.
 - **Use real-world data and real media for workflow testing.** Generated fixtures are a fallback.
 - **Document environment quirks, permission requirements, and workflow changes as you go.** Append discoveries to this file or `docs/`.

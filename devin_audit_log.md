@@ -122,6 +122,21 @@ None.
 - Full `npm run validate` passes: 0 lint warnings, 34 unit tests, 12 e2e tests,
   zero-warning build.
 
+### Iteration 11 — scrap the 3D Peng-yu graph
+
+- Replaced `react-force-graph-3d` + `three` with a clean, custom 2D SVG force
+  graph (`src/renderer/SocialGraph2D.tsx`) using d3-force and d3-zoom.
+- Nodes are sized by Dunbar circle, colored by context using Ka-teng tokens,
+  and labelled for inner circles / selection / hover.
+- Links dim when not in the active neighborhood; the active friend and their
+  neighbors highlight.
+- Pan and zoom behave like a normal SVG map, with a small hint label.
+- Removed the old `SocialGraph3D.tsx`, `d3-force-3d`, `react-force-graph-3d`,
+  and `three` from dependencies, plus `@types/three`.
+- Updated `App.tsx`, `README.md`, and `package.json` to reflect the 2D graph.
+- Production bundle dropped the large `vendor-force-graph` chunk and the
+  `SocialGraph3D` lazy chunk.
+
 ## Verification commands
 
 ```bash

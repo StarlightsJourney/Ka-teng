@@ -148,6 +148,9 @@ button { color: inherit; }
 
 .social-graph { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: var(--radius-md); background: var(--bg); }
 .social-graph canvas { display: block; background: var(--bg); }
+.social-graph-svg { display: block; width: 100%; height: 100%; touch-action: none; }
+.social-graph-svg text { font-family: Inter, "Inter Fallback", -apple-system, system-ui, sans-serif; }
+.social-hint { position: absolute; bottom: 14px; left: 14px; z-index: 4; margin: 0; padding: 5px 9px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-3); background: var(--surface-solid); box-shadow: var(--shadow-card); font-size: 11px; }
 .social-webgl-message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-2); font-size: 14px; }
 .social-pause { position: absolute; bottom: 14px; left: 14px; z-index: 4; width: 38px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-2); background: var(--surface-solid); box-shadow: var(--shadow-float); cursor: pointer; font-size: 13px; }
 .social-pause:hover { color: var(--text); background: var(--surface-2); }

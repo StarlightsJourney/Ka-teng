@@ -1,6 +1,6 @@
 # Ka-teng
 
-Ka-teng is an open-source family lineage visualiser: a navigable 2D family tree plus a separate friends-only 3D social graph (Peng-yu 朋友). Built with React, TypeScript, and Vite. Add people, edit details, explore relationships, and switch between family and friend views without mixing the two datasets.
+Ka-teng is an open-source family lineage visualiser: a navigable 2D family tree plus a separate friends-only 2D social graph (Peng-yu 朋友). Built with React, TypeScript, and Vite. Add people, edit details, explore relationships, and switch between family and friend views without mixing the two datasets.
 
 ## Agent entry point
 
@@ -8,7 +8,7 @@ This repo uses agent guidance in `AGENTS.md` and a reusable vertical-slice workf
 
 ## Peng-yu friends mode
 
-Click the Ka-teng wordmark to switch to Peng-yu (朋友), a separate friends-only 3D social graph. Friends are arranged on Dunbar-ring shells, grouped by context, and can be explored with hover, selection, search, a left-hand friend list, and camera controls. Peng-yu never changes the Ka-teng family dataset.
+Click the Ka-teng wordmark to switch to Peng-yu (朋友), a separate friends-only 2D social graph. Friends are arranged by Dunbar-circle force rings, grouped by context, and can be explored with hover, selection, search, a left-hand friend list, and pan/zoom. Peng-yu never changes the Ka-teng family dataset.
 
 ## Quick start
 

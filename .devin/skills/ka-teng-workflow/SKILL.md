@@ -19,7 +19,7 @@ permissions:
     - Exec("npx vite *")
 ---
 
-Run a vertical-slice workflow test on Ka-teng after any change to data loading, family-chart rendering, Peng-yu 3D graph, search, selection, editing, theme, or state transitions. Verify end-to-end behavior with real data and real browser interaction.
+Run a vertical-slice workflow test on Ka-teng after any change to data loading, family-chart rendering, search, selection, editing, theme, or state transitions. Verify end-to-end behavior with real data and real browser interaction.
 
 ## When to use
 
@@ -27,9 +27,9 @@ Use this skill after changes to:
 
 - `src/data/*` — dataset loading or normalization.
 - `src/element/*` — domain types or pure helpers.
-- `src/scene/*` — search, hierarchy, neighbor navigation, or social layout.
+- `src/scene/*` — search, hierarchy, or neighbor navigation.
 - `src/actions/*` — state transitions.
-- `src/renderer/*` — family-chart or force-graph adapters.
+- `src/renderer/*` — family-chart adapter.
 - `src/components/*` — UI panels, top bar, search, or theme.
 - `src/styles.css` or `src/theme/*` — styling and tokens.
 
@@ -49,19 +49,18 @@ ls node_modules/.package-lock.json
 
 ## Fixture generation (fallback)
 
-Ka-teng uses committed JSON as real source data. If you need isolated test fixtures without modifying committed data, copy the existing datasets:
+Ka-teng uses committed JSON as real source data. If you need isolated test fixtures without modifying committed data, copy the existing dataset:
 
 ```bash
 mkdir -p /tmp/ka-teng-fixtures
 cp src/data/big-tree.json /tmp/ka-teng-fixtures/test-tree.json
-cp src/data/friends.json /tmp/ka-teng-fixtures/test-friends.json
 ```
 
-Do not commit media, databases, or user data. If you need to wire the app to fixture files temporarily, edit `src/data/loadBigTree.ts` or `src/data/friends.ts` and revert before handoff.
+Do not commit media, databases, or user data. If you need to wire the app to fixture files temporarily, edit `src/data/loadBigTree.ts` and revert before handoff.
 
 ## Numbered workflow
 
-1. **Import data** — start the dev server; the app automatically loads `src/data/big-tree.json` and `src/data/friends.json`.
+1. **Import data** — start the dev server; the app automatically loads `src/data/big-tree.json`.
 
    ```bash
    npm run dev
@@ -81,8 +80,8 @@ Do not commit media, databases, or user data. If you need to wire the app to fix
    - Press arrow keys → selection moves to neighbors.
    - Click `+N` on a card with hidden relatives → branch expands.
    - Toggle light/dark theme → colors switch without reload.
-   - Click the Ka-teng brand → switch to Peng-yu 3D mode.
-   - Search and select a friend → `FriendPanel` opens with contexts and mutuals.
+   - Click `+ Add parent/spouse/child` in the details panel → choose to create a new person or connect an existing one.
+   - Add/change a field in the edit form and save → card updates in the tree.
 
 5. **Save item** — in Ka-teng mode, click Edit in the details panel, change a field, and click Save. Verify the card updates in the tree.
 
@@ -129,7 +128,6 @@ If the workflow fails:
 | In-memory edits | Working locally | Edits persist only until page refresh; no backend. |
 | Live persistence | Not implemented | No DB or storage layer. |
 | External avatar loading | Environment-blocked path | CORS/referrer can break images; app falls back to initials. |
-| WebGL 3D graph | Environment-blocked path | Peng-yu requires WebGL; degrades to a message if unavailable. |
 | System-audio / mic / camera | Not implemented | Not required for this app. |
 | Cross-platform desktop build | Not implemented | Browser-only; `dist/` is static. |
 

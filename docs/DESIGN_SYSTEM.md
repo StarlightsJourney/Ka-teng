@@ -75,10 +75,10 @@ Ka-teng has its own visual identity: soft neutral surfaces, Newsreader display t
 
 Components live in `src/components/` and rely on `src/styles.css` classes. They are intentionally small and mostly style-driven.
 
-- `TopBar` — floating pill-shaped shell (`top-bar`) containing brand, search, mode toggle, show-all, theme.
+- `TopBar` — floating pill-shaped shell (`top-bar`) containing brand, search, show-all, theme.
 - `SearchBox` — expanding search with suggestion dropdown.
-- `DetailsPanel` — right-side panel for person details and editing.
-- `FriendPanel` — right-side panel for Peng-yu friend details.
+- `DetailsPanel` — right-side panel for person details, editing, and relationship management.
+- `AddPersonModal` — centered modal for creating a new person and linking them to the selected person.
 - `PersonCard` — compact person display.
 - `ThemeToggle` — icon-only circular button.
 

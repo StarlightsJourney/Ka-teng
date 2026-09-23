@@ -24,14 +24,3 @@ test('adding a person does not log errors', async ({ page }) => {
   await expect(page.locator('.details-panel')).toContainText('Console Test')
   expect(errors).toEqual([])
 })
-
-test('Peng-yu loads without console errors', async ({ page }) => {
-  const errors: string[] = []
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text())
-  })
-  await page.goto('/')
-  await page.locator('.brand').click()
-  await expect(page.locator('.friends-sidebar')).toBeVisible({ timeout: 10000 })
-  expect(errors).toEqual([])
-})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addRelationship, getChildren, getParents, getSpouses } from './family'
+import { addRelationship, canConnectRelationship, getChildren, getParents, getSpouses } from './family'
 import type { Person } from './types'
 
 function peopleMap(): Map<string, Person> {
@@ -37,5 +37,40 @@ describe('addRelationship', () => {
     const map = peopleMap()
     const next = addRelationship(map, 'a', 'a', 'spouse')
     expect(next).toBe(map)
+  })
+})
+
+describe('canConnectRelationship', () => {
+  it('allows a new parent relationship', () => {
+    const map = peopleMap()
+    expect(canConnectRelationship(map, 'b', 'd', 'parent')).toBe(true)
+  })
+
+  it('disallows connecting a child as a spouse', () => {
+    const map = peopleMap()
+    expect(canConnectRelationship(map, 'a', 'b', 'spouse')).toBe(false)
+  })
+
+  it('disallows connecting a parent as a child', () => {
+    const map = peopleMap()
+    expect(canConnectRelationship(map, 'a', 'b', 'child')).toBe(false)
+  })
+
+  it('disallows duplicate relationships', () => {
+    const map = peopleMap()
+    expect(canConnectRelationship(map, 'a', 'c', 'parent')).toBe(false)
+    expect(canConnectRelationship(map, 'b', 'c', 'spouse')).toBe(false)
+  })
+
+  it('disallows parent relationships that would create a cycle', () => {
+    const map = peopleMap()
+    // a is already an ancestor of d, so d cannot become a parent of a.
+    expect(canConnectRelationship(map, 'd', 'a', 'parent')).toBe(false)
+  })
+
+  it('disallows child relationships that would create a cycle', () => {
+    const map = peopleMap()
+    // a is already an ancestor of d, so a cannot become a child of d.
+    expect(canConnectRelationship(map, 'a', 'd', 'child')).toBe(false)
   })
 })

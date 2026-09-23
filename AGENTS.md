@@ -29,20 +29,20 @@ If the design system is not yet documented in `docs/DESIGN_SYSTEM.md`, the first
 ## Stack and layout
 
 - **Runtime:** React 18 + TypeScript + Vite 8.
-- **Visualization:** `family-chart` for the 2D family tree; `react-force-graph-3d` + `three` + `d3-force-3d` for Peng-yu friends mode.
-- **Data:** static JSON datasets (`src/data/big-tree.json`, `src/data/friends.json`) normalized in `src/data/`.
+- **Visualization:** `family-chart` for the 2D family tree.
+- **Data:** static JSON dataset (`src/data/big-tree.json`) normalized in `src/data/`.
 - **State:** `src/actions/` holds pure `Action` objects; `src/components/App.tsx` is the only stateful orchestrator.
 - **Styling:** hand-written CSS in `src/styles.css` with design tokens in `src/theme/tokens.css`. Light/dark themes via `data-theme` attribute.
 - **Fonts:** Inter variable + Newsreader.
 
 ```text
 src/
-├── actions/       State transitions (selection, search, expand, edit)
+├── actions/       State transitions (selection, search, expand, edit, add, connect)
 ├── components/    UI components at the application edge
 ├── data/          Source datasets and normalization
-├── element/       Pure person/family/friend domain types and helpers
+├── element/       Pure person/family domain types and helpers
 ├── renderer/      React adapters around visualization libraries
-├── scene/         Pure hierarchy, expansion, search, and social logic
+├── scene/         Pure hierarchy, expansion, and search logic
 ├── theme/         Theme state and CSS tokens
 ├── main.tsx       Application entrypoint
 └── styles.css     Application layout and component styling
@@ -53,7 +53,6 @@ src/
 | Workstream | Owned files | Shared/coordinator-owned |
 |------------|-------------|--------------------------|
 | Family tree 2D | `src/renderer/FamilyChart2D.tsx`, `src/renderer/familyChartAdapter.ts`, `src/scene/pruneHierarchy.*`, `src/scene/largestFamily.*` | `src/element/*`, `src/actions/*` |
-| Peng-yu 3D graph | `src/renderer/SocialGraph3D.tsx`, `src/scene/social.*`, `src/data/friends.*`, `src/components/FriendPanel.tsx`, `src/components/FriendsSidebar.tsx`, `src/components/FriendModal.tsx`, `src/actions/friend.*` | `src/element/friend.ts` |
 | Search & navigation | `src/components/SearchBox.tsx`, `src/scene/search.*`, `src/actions/search.*`, `src/actions/select.*` | `src/element/types.ts`, `src/actions/types.ts` |
 | Details & editing | `src/components/DetailsPanel.tsx`, `src/components/PersonCard.tsx`, `src/components/AddPersonModal.tsx`, `src/actions/person.*` | `src/element/person.ts`, `src/element/family.ts` |
 | Theme & shell | `src/theme/*`, `src/components/TopBar.tsx`, `src/components/ThemeToggle.tsx`, `src/styles.css` | `src/theme/tokens.css` |

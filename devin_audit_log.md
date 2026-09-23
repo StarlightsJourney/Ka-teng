@@ -137,6 +137,34 @@ None.
 - Production bundle dropped the large `vendor-force-graph` chunk and the
   `SocialGraph3D` lazy chunk.
 
+### Iteration 12 — remove Peng-yu entirely; add explicit existing-person connection
+
+- Removed Peng-yu mode completely:
+  - Deleted `src/renderer/SocialGraph2D.tsx`, `src/components/FriendModal.tsx`,
+    `src/components/FriendsSidebar.tsx`, `src/components/FriendPanel.tsx`,
+    `src/actions/friend.ts`, `src/data/friends.ts`, `src/data/friends.json`,
+    `src/element/friend.ts`, `src/scene/social.ts`, `src/scene/social.test.ts`.
+  - Removed `react-force-graph-3d`, `d3-force-3d`, `three`, `@types/three`.
+  - Removed Peng-yu state, mode toggle, and all related UI from `App.tsx`,
+    `TopBar.tsx`, and `src/styles.css`.
+  - Updated `README.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`,
+    `docs/DESIGN_SYSTEM.md`, and `.devin/skills/ka-teng-workflow/SKILL.md`.
+- Added a **Connect existing person** flow:
+  - New `ConnectPersonModal.tsx` lets users pick an existing person and a
+    relationship (parent / spouse / child) to link to the selected person.
+  - Added `canConnectRelationship` in `src/element/family.ts` to prevent
+    duplicate, conflicting, and cyclic relationships (e.g., a descendant cannot
+    become a parent of an ancestor).
+  - Added unit tests for `canConnectRelationship`.
+  - Added e2e test that opens the connect modal and shows candidates.
+- Relationship semantics kept explicit:
+  - Adding a spouse only creates a spouse link; the spouse is not automatically
+    made a parent of existing children.
+  - Users can explicitly connect the new spouse as a parent of those children
+    if they want the couple rendered as a shared family unit.
+- Full `npm run validate` passes: 0 lint warnings, 38 unit tests, 10 e2e tests,
+  zero-warning build.
+
 ## Verification commands
 
 ```bash

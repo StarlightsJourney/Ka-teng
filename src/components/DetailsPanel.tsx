@@ -15,6 +15,7 @@ type DetailsPanelProps = {
   onRemove: () => void
   onClose: () => void
   onAddPerson: (relationship: RelationshipType) => void
+  onConnectPerson: (relationship: RelationshipType) => void
 }
 
 function RelationList({ people, onSelect }: { people: Person[]; onSelect: (id: string) => void }) {
@@ -148,7 +149,7 @@ function EditForm({ person, onCancel, onSave, onRemove, onClose }: { person: Per
   )
 }
 
-export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCancel, onSave, onRemove, onClose, onAddPerson }: DetailsPanelProps) {
+export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCancel, onSave, onRemove, onClose, onAddPerson, onConnectPerson }: DetailsPanelProps) {
   const age = ageOf(person, new Date())
   return (
     <aside className="details-panel">
@@ -166,17 +167,26 @@ export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCanc
           <div className="relationship-section">
             <h2>Parents</h2>
             <RelationList people={getParents(person, people)} onSelect={onSelect} />
-            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('parent')}>+ Add parent</button>
+            <div className="relationship-actions">
+              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('parent')}>+ Add parent</button>
+              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('parent')}>↔ Connect parent</button>
+            </div>
           </div>
           <div className="relationship-section">
             <h2>Spouses</h2>
             <RelationList people={getSpouses(person, people)} onSelect={onSelect} />
-            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('spouse')}>+ Add spouse</button>
+            <div className="relationship-actions">
+              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('spouse')}>+ Add spouse</button>
+              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('spouse')}>↔ Connect spouse</button>
+            </div>
           </div>
           <div className="relationship-section">
             <h2>Children</h2>
             <RelationList people={getChildren(person, people)} onSelect={onSelect} />
-            <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('child')}>+ Add child</button>
+            <div className="relationship-actions">
+              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('child')}>+ Add child</button>
+              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('child')}>↔ Connect child</button>
+            </div>
           </div>
         </>
       )}

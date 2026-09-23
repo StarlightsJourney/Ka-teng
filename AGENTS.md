@@ -53,7 +53,7 @@ src/
 | Workstream | Owned files | Shared/coordinator-owned |
 |------------|-------------|--------------------------|
 | Family tree 2D | `src/renderer/FamilyChart2D.tsx`, `src/renderer/familyChartAdapter.ts`, `src/scene/pruneHierarchy.*`, `src/scene/largestFamily.*` | `src/element/*`, `src/actions/*` |
-| Peng-yu 3D graph | `src/renderer/SocialGraph3D.tsx`, `src/scene/social.*`, `src/data/friends.*`, `src/components/FriendPanel.tsx`, `src/components/FriendsSidebar.tsx` | `src/element/friend.ts` |
+| Peng-yu 3D graph | `src/renderer/SocialGraph3D.tsx`, `src/scene/social.*`, `src/data/friends.*`, `src/components/FriendPanel.tsx`, `src/components/FriendsSidebar.tsx`, `src/components/FriendModal.tsx`, `src/actions/friend.*` | `src/element/friend.ts` |
 | Search & navigation | `src/components/SearchBox.tsx`, `src/scene/search.*`, `src/actions/search.*`, `src/actions/select.*` | `src/element/types.ts`, `src/actions/types.ts` |
 | Details & editing | `src/components/DetailsPanel.tsx`, `src/components/PersonCard.tsx`, `src/components/AddPersonModal.tsx`, `src/actions/person.*` | `src/element/person.ts`, `src/element/family.ts` |
 | Theme & shell | `src/theme/*`, `src/components/TopBar.tsx`, `src/components/ThemeToggle.tsx`, `src/styles.css` | `src/theme/tokens.css` |

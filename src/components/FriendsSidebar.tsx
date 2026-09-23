@@ -12,6 +12,7 @@ type FriendsSidebarProps = {
   friends: Friend[]
   selectedId: string | null
   onSelect: (id: string) => void
+  onAdd?: () => void
 }
 
 function FriendRow({ friend, isSelected, onClick }: { friend: Friend; isSelected: boolean; onClick: () => void }) {
@@ -26,7 +27,7 @@ function FriendRow({ friend, isSelected, onClick }: { friend: Friend; isSelected
   )
 }
 
-export function FriendsSidebar({ friends, selectedId, onSelect }: FriendsSidebarProps) {
+export function FriendsSidebar({ friends, selectedId, onSelect, onAdd }: FriendsSidebarProps) {
   const groups = friends.reduce<Record<FriendCircle, Friend[]>>((acc, friend) => {
     acc[friend.circle] = [...(acc[friend.circle] ?? []), friend]
     return acc
@@ -34,8 +35,11 @@ export function FriendsSidebar({ friends, selectedId, onSelect }: FriendsSidebar
   return (
     <nav className="friends-sidebar" aria-label="Friends">
       <div className="friends-sidebar-head">
-        <h2>Peng-yu</h2>
-        <p>{friends.length} friends</p>
+        <div>
+          <h2>Peng-yu</h2>
+          <p>{friends.length} friends</p>
+        </div>
+        {onAdd && <button type="button" className="add-person-button" onClick={onAdd} aria-label="Add a friend" title="Add a friend">+</button>}
       </div>
       {(Object.keys(circleLabels) as unknown as FriendCircle[]).map((circle) => {
         const group = groups[circle]

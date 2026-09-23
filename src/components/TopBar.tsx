@@ -24,6 +24,7 @@ type TopBarProps = {
   mode: AppMode
   onToggleMode: () => void
   onAddPerson: () => void
+  onAddFriend: () => void
   placeholder?: string
   hideShowAll?: boolean
 }
@@ -35,6 +36,7 @@ export function TopBar(props: TopBarProps) {
       <SearchBox inputRef={props.inputRef} value={props.query} onChange={props.onSearch} onSubmit={props.onSearchSubmit} onSelect={props.onSearchSelect} onDismiss={props.onSearchDismiss} suggestions={props.suggestions} shortcut={props.shortcut} placeholder={props.placeholder} />
       <div className="toolbar">
         {props.mode === 'ka-teng' && <button type="button" className="add-person-button" onClick={props.onAddPerson} aria-label="Add a person" title="Add a person">+</button>}
+        {props.mode === 'peng-yu' && <button type="button" className="add-person-button" onClick={props.onAddFriend} aria-label="Add a friend" title="Add a friend">+</button>}
         {!props.hideShowAll && <button type="button" className={`show-all-toggle ${props.showAll ? 'active' : ''}`} title={props.showAll ? 'Show less' : 'Show all'} aria-label={props.showAll ? 'Show less' : 'Show all'} onClick={props.onRequestShowAll}>
           {props.showAll ? 'Show less' : 'Show all'}
         </button>}

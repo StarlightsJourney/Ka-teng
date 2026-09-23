@@ -15,9 +15,10 @@ type FriendPanelProps = {
   links: readonly FriendLink[]
   onSelect: (id: string) => void
   onClose: () => void
+  onEdit: () => void
 }
 
-export function FriendPanel({ friend, friends, links, onSelect, onClose }: FriendPanelProps) {
+export function FriendPanel({ friend, friends, links, onSelect, onClose, onEdit }: FriendPanelProps) {
   const byId = new Map(friends.map((item) => [item.id, item]))
   const mutual = mutuals(links, 'me', friend.id).map((id) => byId.get(id)).filter((item): item is Friend => Boolean(item))
   const safeAvatar = sanitizeAvatarUrl(friend.avatar)
@@ -31,7 +32,10 @@ export function FriendPanel({ friend, friends, links, onSelect, onClose }: Frien
           <h1>{friendName(friend)}</h1>
           <p>{ringLabel[friend.circle]}</p>
         </div>
-        <button type="button" className="panel-close" onClick={onClose} aria-label="Close friend details">×</button>
+        <div className="friend-panel-actions">
+          <button type="button" className="panel-edit" onClick={onEdit} aria-label="Edit friend">✎</button>
+          <button type="button" className="panel-close" onClick={onClose} aria-label="Close friend details">×</button>
+        </div>
       </div>
 
       {friend.contexts.length > 0 && (

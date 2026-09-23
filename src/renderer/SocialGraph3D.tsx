@@ -164,14 +164,25 @@ function supportsWebGL(): boolean {
   return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
 }
 
-const contextColors: Record<string, string> = {
-  work: '#4C82CF',
-  university: '#9A57C5',
-  travel: '#209A7D',
-  childhood: '#D9782D',
-  online: '#7058C6',
-  'family friend': '#C84570',
-  other: '#68717D',
+const contextPalette: Record<'light' | 'dark', Record<string, string>> = {
+  light: {
+    work: '#4A7FD6',
+    university: '#D46A8A',
+    travel: '#0087FF',
+    childhood: '#C8A12B',
+    online: '#030302',
+    'family friend': '#D46A8A',
+    other: '#9C9C9D',
+  },
+  dark: {
+    work: '#6FA1FF',
+    university: '#F08FB0',
+    travel: '#4DB8FF',
+    childhood: '#FDE99B',
+    online: '#FF6363',
+    'family friend': '#F08FB0',
+    other: '#9C9C9D',
+  },
 }
 function initials(friend: Friend): string {
   return `${friend.firstName[0] ?? ''}${friend.lastName[0] ?? ''}`.toUpperCase()
@@ -181,32 +192,47 @@ function nodeSize(node: GraphNode): number {
   return node.id === 'me' ? 48 : ({ 5: 40, 15: 34, 50: 28, 150: 22, 500: 16 }[node.circle] ?? 20)
 }
 
+function contextColor(friend: Friend, theme: ThemeMode): string {
+  return contextPalette[theme][friend.contexts[0] ?? 'other'] ?? contextPalette[theme].other
+}
+
 function nodeTexture(friend: Friend, showLabel: boolean, theme: ThemeMode): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 320
   const context = canvas.getContext('2d')!
+  const color = contextColor(friend, theme)
+  const isMe = friend.id === 'me'
   context.save()
   context.beginPath()
-  context.arc(128, 128, 120, 0, Math.PI * 2)
+  context.arc(128, 128, 116, 0, Math.PI * 2)
   context.clip()
-  context.fillStyle = contextColors[friend.contexts[0] ?? 'other'] ?? contextColors.other
-  context.fillRect(8, 8, 240, 240)
-  context.strokeStyle = '#ffffff'
+  const gradient = context.createRadialGradient(128, 128, 20, 128, 128, 116)
+  gradient.addColorStop(0, isMe ? (theme === 'dark' ? '#FF6363' : '#030302') : color)
+  gradient.addColorStop(1, isMe ? (theme === 'dark' ? '#FF9E9E' : '#4A4A4A') : color)
+  context.fillStyle = gradient
+  context.fillRect(24, 24, 208, 208)
+  context.shadowColor = 'rgba(0,0,0,0.25)'
+  context.shadowBlur = 16
+  context.shadowOffsetY = 6
+  context.strokeStyle = theme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)'
   context.lineWidth = 4
   context.stroke()
   context.fillStyle = '#ffffff'
-  context.font = '600 42px Inter, sans-serif'
+  context.font = '600 46px Inter, system-ui, sans-serif'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillText(initials(friend), 128, 128)
   context.restore()
   if (showLabel) {
-    context.font = '600 84px Inter, sans-serif'
-    context.fillStyle = theme === 'dark' ? '#F5F5F7' : '#17191D'
-    context.fillText(friend.firstName, 128, 285)
+    context.font = '600 38px Inter, system-ui, sans-serif'
+    context.fillStyle = theme === 'dark' ? '#FFFFFF' : '#030302'
+    context.textAlign = 'center'
+    context.fillText(friend.firstName, 128, 275)
   }
-  return new THREE.CanvasTexture(canvas)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
 }
 
 export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: SocialGraph3DProps) {
@@ -319,17 +345,16 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
       nodeThreeObject={nodeThreeObject}
       nodeThreeObjectExtend={false}
       nodeLabel={(node) => friendName((friendMap.get(node.id as string) ?? node) as Friend)}
-      linkColor={(link) => contextColors[(link as GraphLink).context ?? 'other'] ?? contextColors.other}
+      linkColor={(link) => contextPalette[theme][(link as GraphLink).context ?? 'other'] ?? contextPalette[theme].other}
       linkOpacity={((link: GraphLink) => {
-        if (!activeIds) return 0.55
+        if (!activeIds) return 0.35
         const candidate = link as GraphLink
         const source = typeof candidate.source === 'string' ? candidate.source : candidate.source.id
         const target = typeof candidate.target === 'string' ? candidate.target : candidate.target.id
-        return activeIds.has(source) || activeIds.has(target) ? 1 : 0.12
+        return activeIds.has(source) || activeIds.has(target) ? 0.9 : 0.12
       }) as unknown as number}
-      linkWidth={(link) => { const l = link as GraphLink; const source = typeof l.source === 'string' ? l.source : l.source.id; const target = typeof l.target === 'string' ? l.target : l.target.id; return activeIds && !activeIds.has(source) && !activeIds.has(target) ? 0.08 : activeIds ? 3 : 1.2 }}
-      linkDirectionalParticles={1}
-      linkDirectionalParticleSpeed={0.004}
+      linkWidth={(link) => { const l = link as GraphLink; const source = typeof l.source === 'string' ? l.source : l.source.id; const target = typeof l.target === 'string' ? l.target : l.target.id; return activeIds && !activeIds.has(source) && !activeIds.has(target) ? 0.06 : activeIds ? 2.5 : 0.8 }}
+      linkDirectionalParticles={0}
       onNodeClick={(node) => { const point = node as GraphNode; const id = point.id; if (id !== 'me') { graphSelectionRef.current = true; onSelect(id); if (graphRef.current) focusCamera(graphRef.current, point) } }}
       onNodeHover={(node) => { setHoveredId((node as GraphNode | null)?.id ?? null); graphRef.current?.refresh() }}
       d3AlphaDecay={0}

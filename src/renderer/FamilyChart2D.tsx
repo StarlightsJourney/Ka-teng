@@ -151,11 +151,19 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
   useEffect(() => {
     peopleRef.current = people
     peopleByIdRef.current = new Map(people.map((person) => [person.id, person]))
+    dismissedToastRef.current = false
     if (!chartRef.current) return
     chartRef.current.updateData(toFamilyChartData(people))
     chartRef.current.updateMainId(selectedIdRef.current ?? defaultMainId ?? peopleRef.current[0]?.id ?? '')
     chartRef.current.updateTree({ tree_position: 'inherit' })
   }, [defaultMainId, people])
+
+  useEffect(() => {
+    if (!overflowToast || zoomedOut) return
+    dismissedToastRef.current = false
+    const timer = window.setTimeout(() => { dismissedToastRef.current = true; setOverflowToast(false) }, 6000)
+    return () => window.clearTimeout(timer)
+  }, [overflowToast, zoomedOut])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -216,8 +224,12 @@ export function FamilyChart2D({ people, defaultMainId, selectedId, showAll, expa
       const minY = Math.min(...ys) - 30 * current.k
       const maxY = Math.max(...ys) + 30 * current.k
       const fits = minX >= 0 && maxX <= rect.width && minY >= 0 && maxY <= rect.height
-      if (zoomedOutRef.current || dismissedToastRef.current) return
-      setOverflowToast(!fits)
+      if (fits) {
+        setOverflowToast(false)
+        return
+      }
+      if (dismissedToastRef.current) return
+      setOverflowToast(true)
     }
     const updateCenteredTree = (transitionTime = 0) => {
       chart.updateTree({ tree_position: 'inherit', transition_time: transitionTime })

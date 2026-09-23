@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { addPerson, cancelEditing, clearSelection, connectPeople, editPerson, expandPerson, removePersonAction, selectPerson, selectSearchResult, searchAndSelect, setSearch, toggleExpandAll, updatePerson, type Action, type AppState } from '../actions'
 import { loadBigTree } from '../data'
 import { loadFriends } from '../data'
-import { friendName, type Person, type RelationshipType } from '../element'
+import { friendName, type Friend, type FriendGraph, type Person, type RelationshipType } from '../element'
+import { addFriend as addFriendAction, removeFriend, updateFriend } from '../actions/friend'
 import { largestFamilyRoot, neighborOf, searchPeople, type NeighborDirection } from '../scene'
 import { FamilyChart2D } from '../renderer/FamilyChart2D'
 import { useTheme } from '../theme'
@@ -10,13 +11,14 @@ import { useTheme } from '../theme'
 const SocialGraph3D = lazy(() => import('../renderer/SocialGraph3D').then((module) => ({ default: module.SocialGraph3D })))
 import { AddPersonModal } from './AddPersonModal'
 import { DetailsPanel } from './DetailsPanel'
+import { FriendModal } from './FriendModal'
 import { FriendPanel } from './FriendPanel'
 import { FriendsSidebar } from './FriendsSidebar'
 import { TopBar } from './TopBar'
 
 export type AppMode = 'ka-teng' | 'peng-yu'
 const people = loadBigTree()
-const friendGraph = loadFriends()
+const initialFriends: FriendGraph = loadFriends()
 const peopleById = new Map(people.map((person) => [person.id, person]))
 const initialState: AppState = {
   peopleById,
@@ -37,6 +39,8 @@ export function App() {
   const [showAllConfirming, setShowAllConfirming] = useState(false)
   const [addingPerson, setAddingPerson] = useState(false)
   const [addPersonRelationship, setAddPersonRelationship] = useState<RelationshipType | null>(null)
+  const [friendState, setFriendState] = useState<FriendGraph>(initialFriends)
+  const [friendModal, setFriendModal] = useState<{ open: boolean; friendId?: string }>({ open: false })
   const perform = (action: Action) => setState((current) => action.perform(current))
   const selected = state.selectedId ? state.peopleById.get(state.selectedId) : undefined
   const currentPeople = useMemo(() => [...state.peopleById.values()], [state.peopleById])
@@ -48,8 +52,8 @@ export function App() {
   const friendSuggestions = useMemo(() => {
     const query = friendQuery.trim().toLocaleLowerCase()
     if (!query) return []
-    return friendGraph.friends.filter((friend) => friendName(friend).toLocaleLowerCase().includes(query)).slice(0, 8)
-  }, [friendQuery])
+    return friendState.friends.filter((friend) => friendName(friend).toLocaleLowerCase().includes(query)).slice(0, 8)
+  }, [friendQuery, friendState.friends])
   const suggestions = mode === 'ka-teng'
     ? matches.slice(0, 8)
     : friendSuggestions.map((friend) => ({ id: friend.id, name: { first: friend.firstName, last: friend.lastName }, gender: 'U' as const, avatar: friend.avatar }))
@@ -78,6 +82,20 @@ export function App() {
       }
     }
     setAddingPerson(false)
+  }
+  const handleSaveFriend = (friend: Friend) => {
+    if (friendModal.friendId) {
+      const { id: _, ...patch } = friend
+      setFriendState((current) => updateFriend(current, friendModal.friendId!, patch))
+    } else {
+      setFriendState((current) => addFriendAction(current, friend))
+    }
+    setFriendModal({ open: false })
+  }
+  const handleRemoveFriend = (id: string) => {
+    setFriendState((current) => removeFriend(current, id))
+    if (friendSelectedId === id) setFriendSelectedId(null)
+    setFriendModal({ open: false })
   }
 
   useEffect(() => {
@@ -118,7 +136,7 @@ export function App() {
   }, [mode, searchInput, state.peopleById, state.selectedId])
 
   const query = mode === 'ka-teng' ? state.query : friendQuery
-  const selectedFriend = friendSelectedId ? friendGraph.friends.find((friend) => friend.id === friendSelectedId) : undefined
+  const selectedFriend = friendSelectedId ? friendState.friends.find((friend) => friend.id === friendSelectedId) : undefined
 
   return (
     <main className="app-shell">
@@ -153,11 +171,12 @@ export function App() {
         mode={mode}
         onToggleMode={toggleMode}
         onAddPerson={() => setAddingPerson(true)}
+        onAddFriend={() => setFriendModal({ open: true })}
         placeholder={mode === 'ka-teng' ? 'Search people…' : 'Search friends…'}
         hideShowAll={mode === 'peng-yu'}
       />
       <section className={`workspace ${mode === 'peng-yu' ? 'peng-yu-layout' : ''}`}>
-        {mode === 'peng-yu' && <FriendsSidebar friends={friendGraph.friends} selectedId={friendSelectedId} onSelect={setFriendSelectedId} />}
+        {mode === 'peng-yu' && <FriendsSidebar friends={friendState.friends} selectedId={friendSelectedId} onSelect={setFriendSelectedId} onAdd={() => setFriendModal({ open: true })} />}
         <div className="scene-panel">
           {mode === 'ka-teng' ? <FamilyChart2D
             people={currentPeople}
@@ -169,7 +188,7 @@ export function App() {
             onExpand={(id) => perform(expandPerson(id))}
             onEdit={(id) => perform(editPerson(id))}
           /> : <Suspense fallback={<div className="social-graph" role="status"><span className="sr-only">Loading Peng-yu graph…</span></div>}>
-            <SocialGraph3D friends={friendGraph.friends} links={friendGraph.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />
+            <SocialGraph3D friends={friendState.friends} links={friendState.links} selectedId={friendSelectedId} theme={theme} onSelect={(id) => setFriendSelectedId(id)} />
           </Suspense>}
         </div>
         {mode === 'ka-teng' && selected && <DetailsPanel
@@ -184,7 +203,7 @@ export function App() {
           onClose={() => perform(clearSelection())}
           onAddPerson={(relationship) => { setAddPersonRelationship(relationship); setAddingPerson(true) }}
         />}
-        {mode === 'peng-yu' && selectedFriend && <FriendPanel friend={selectedFriend} friends={friendGraph.friends} links={friendGraph.links} onSelect={setFriendSelectedId} onClose={() => setFriendSelectedId(null)} />}
+        {mode === 'peng-yu' && selectedFriend && <FriendPanel friend={selectedFriend} friends={friendState.friends} links={friendState.links} onSelect={setFriendSelectedId} onClose={() => setFriendSelectedId(null)} onEdit={() => setFriendModal({ open: true, friendId: selectedFriend.id })} />}
         <div className="navigation-hint">↑ ↓ ← → navigate · {shortcut} search</div>
       </section>
       {addingPerson && mode === 'ka-teng' && (
@@ -193,6 +212,14 @@ export function App() {
           initialRelationship={addPersonRelationship}
           onClose={() => { setAddingPerson(false); setAddPersonRelationship(null) }}
           onAdd={handleAddPerson}
+        />
+      )}
+      {friendModal.open && mode === 'peng-yu' && (
+        <FriendModal
+          friend={friendModal.friendId ? friendState.friends.find((friend) => friend.id === friendModal.friendId) : undefined}
+          onClose={() => setFriendModal({ open: false })}
+          onSave={handleSaveFriend}
+          onRemove={friendModal.friendId ? () => handleRemoveFriend(friendModal.friendId!) : undefined}
         />
       )}
     </main>

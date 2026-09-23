@@ -51,6 +51,17 @@ None.
 - Added Escape-key handling in edit mode to save the draft and close the panel.
 - Cancel still reverts to read-only mode without saving.
 
+### Iteration 6 — mobile layout, Peng-yu cleanup, friend editing
+
+- Mobile top bar: reduced height/padding, smaller brand, icon-only search, add/theme buttons on narrow screens.
+- Mobile details panel: bottom-sheet with drag-handle, 38vh default height, max-height 520px.
+- Mobile Peng-yu: friends sidebar and friend panel become bottom sheets with drag handles.
+- Overflow toast: now hides automatically when the tree fits, auto-dismisses after 6s, and resets on data change; moved to bottom on mobile and wraps.
+- Navigation hint hidden on mobile to reduce crowding.
+- Peng-yu graph: replaced hardcoded context colors with Ka-teng token palette, cleaner node sprites with radial gradients, subtler links (no particles), lower base opacity.
+- Friend editing: added `src/actions/friend.ts`, `FriendModal`, in-memory friend state in App, edit/remove in `FriendPanel`, and add buttons in `TopBar` and `FriendsSidebar`.
+- Added context chip selectors in `FriendModal`.
+
 ## Verification commands
 
 ```bash

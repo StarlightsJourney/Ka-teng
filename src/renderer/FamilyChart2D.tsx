@@ -39,8 +39,8 @@ function centerVisibleTree(
   if (!listener || !zoom || !tree?.data?.length) return
 
   const svgRect = svg.getBoundingClientRect()
-  const cardWidth = 220
-  const cardHeight = 60
+  const cardWidth = 230
+  const cardHeight = 64
   const minX = Math.min(...tree.data.map((datum) => datum.x - cardWidth / 2))
   const maxX = Math.max(...tree.data.map((datum) => datum.x + cardWidth / 2))
   const minY = Math.min(...tree.data.map((datum) => datum.y - cardHeight / 2))

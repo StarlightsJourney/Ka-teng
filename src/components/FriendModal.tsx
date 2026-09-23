@@ -93,19 +93,33 @@ export function FriendModal({ friend, onClose, onSave, onRemove }: FriendModalPr
 
           <section className="form-section">
             <h3>Contexts</h3>
+            {contexts.length > 0 && (
+              <div className="context-chips">
+                {contexts.map((context) => (
+                  <button key={context} type="button" className="context-chip active" onClick={() => setContexts((current) => current.filter((value) => value !== context))}>
+                    {context} ×
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="context-chips">
-              {contextOptions.map((context) => (
-                <label key={context} className={`context-chip ${contexts.includes(context) ? 'active' : ''}`}>
-                  <input type="checkbox" checked={contexts.includes(context)} onChange={() => toggleContext(context)} />
-                  {context}
-                </label>
+              {contextOptions.filter((context) => !contexts.includes(context)).map((context) => (
+                <button key={context} type="button" className="context-chip" onClick={() => toggleContext(context)}>
+                  + {context}
+                </button>
               ))}
             </div>
-            <label>Or type contexts<input value={contextInput} onChange={(event) => {
-              setContextInput(event.target.value)
+            <label>Or type a context<input value={contextInput} onChange={(event) => setContextInput(event.target.value)} onBlur={(event) => {
               const values = event.target.value.split(',').map((value) => value.trim()).filter(Boolean)
               if (values.length) setContexts((current) => [...new Set([...current, ...values])])
-            }} placeholder="e.g. work, travel" /></label>
+              setContextInput('')
+            }} onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              const values = contextInput.split(',').map((value) => value.trim()).filter(Boolean)
+              if (values.length) setContexts((current) => [...new Set([...current, ...values])])
+              setContextInput('')
+            }} placeholder="e.g. book club" /></label>
           </section>
 
           <section className="form-section">

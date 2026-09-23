@@ -96,6 +96,32 @@ None.
     connects the new parent as a spouse of the existing parent.
 - Added e2e coverage for the spouse-as-parent flow.
 
+### Iteration 10 — relationship assumptions, Peng-yu bugs, broader e2e workflow
+
+- Reverted automatic relationship inference:
+  - Adding a spouse no longer auto-assigns them as parent of existing children.
+  - Adding a parent no longer auto-connects them as spouse of existing parents.
+  - Only the explicitly chosen relationship is created; users can edit further if
+    needed. This avoids incorrect step-parent / co-parent assumptions.
+- Ka-teng card aesthetics:
+  - Slightly larger cards (230×64) with larger 40px avatars and gender-tinted
+    avatar backgrounds (male/female) from the existing tokens.
+  - Stronger hover lift and shadow.
+- Peng-yu fixes and polish:
+  - Fixed `FriendModal` context input: it now adds typed contexts on Enter/Blur
+    instead of on every keystroke, and shows selected contexts as removable
+    chips plus suggested context options.
+  - Reduced mobile Peng-yu sidebar/panel heights (30vh / 50vh) to leave more
+    canvas room and reduce overlap.
+  - Added a context-color legend to the graph and slowed auto-rotation.
+  - Hid the graph legend on mobile to reduce clutter.
+- Broader workflow tests:
+  - Added mobile viewport assertions for both Ka-teng and Peng-yu.
+  - Added end-to-end coverage for Peng-yu add, edit, and remove friend flows.
+  - Updated spouse test to reflect the new spouses-only behavior.
+- Full `npm run validate` passes: 0 lint warnings, 34 unit tests, 12 e2e tests,
+  zero-warning build.
+
 ## Verification commands
 
 ```bash

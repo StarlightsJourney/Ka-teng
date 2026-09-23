@@ -269,7 +269,7 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
     if (!graph) return
     const controls = graph.controls() as { autoRotate: boolean; autoRotateSpeed: number }
     controls.autoRotate = !paused
-    controls.autoRotateSpeed = 0.4
+    controls.autoRotateSpeed = 0.25
     const restartTimer = window.setTimeout(() => {
       graph.pauseAnimation()
       const radial = forceRadial(
@@ -366,5 +366,10 @@ export function SocialGraph3D({ friends, links, selectedId, theme, onSelect }: S
       enableNavigationControls
     />
     <button type="button" className="social-pause" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume graph' : 'Pause graph'}>{paused ? '▶' : 'Ⅱ'}</button>
+    <div className="social-legend" aria-label="Contexts">
+      {Object.entries(contextPalette[theme]).map(([context, color]) => (
+        <span key={context} className="social-legend-item"><span className="social-legend-dot" style={{ background: color }} />{context}</span>
+      ))}
+    </div>
   </div>
 }

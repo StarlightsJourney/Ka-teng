@@ -75,16 +75,10 @@ export function App() {
     if (relationship && selected && selected.id !== person.id) {
       if (relationship === 'parent') {
         perform(connectPeople(person.id, selected.id, 'parent'))
-        selected.parents?.forEach((otherParentId) => {
-          if (otherParentId !== person.id) perform(connectPeople(person.id, otherParentId, 'spouse'))
-        })
       } else if (relationship === 'child') {
         perform(connectPeople(selected.id, person.id, 'parent'))
       } else {
         perform(connectPeople(selected.id, person.id, 'spouse'))
-        selected.children?.forEach((childId) => {
-          perform(connectPeople(person.id, childId, 'parent'))
-        })
       }
     }
     setAddingPerson(false)

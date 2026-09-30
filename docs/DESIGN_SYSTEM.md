@@ -77,10 +77,20 @@ Components live in `src/components/` and rely on `src/styles.css` classes. They 
 
 - `TopBar` — floating pill-shaped shell (`top-bar`) containing brand, search, show-all, theme.
 - `SearchBox` — expanding search with suggestion dropdown.
-- `DetailsPanel` — right-side panel for person details, editing, and relationship management.
-- `AddPersonModal` — centered modal for creating a new person and linking them to the selected person.
+- `DetailsPanel` — right-side panel for person details, editing, and relationship management; collapses to a draggable bottom sheet on mobile.
+- `AddPersonModal` — centered compact modal for creating a new person and linking them to the selected person.
+- `ConnectPersonModal` — modal for linking an existing person as parent/spouse/child.
 - `PersonCard` — compact person display.
 - `ThemeToggle` — icon-only circular button.
+
+### Form conventions
+
+- Shared classes: `.form-sheet`, `.form-section` (use `.compact` for dense sections), `.form-row`, `.form-actions`, `.btn-primary`, `.btn-secondary`, `.btn-danger`.
+- Required fields are marked with a discreet `*` (`.field-required`), never the word “required”. Optional fields are simply unmarked.
+- Non-essential fields (Chinese name, Pinyin, aliases, death details) hide behind a **More details** expander rather than a separate section or divider. No decorative section headings or dividers in compact forms.
+- Photos are uploaded via the clickable avatar preview only — no URL inputs, no separate upload buttons.
+- Relationship choices use pill buttons (`.relationship-option`), not raw radio inputs.
+- Modals use a fixed header + scrollable body + fixed action footer; scrollbars stay inside the body.
 
 ## Motion
 

@@ -34,9 +34,9 @@ npm run build
 
 ## Adding people
 
-Click the **+** button in the top bar to add a new person, or use the **+ Add parent/spouse/child** buttons in a selected person's details panel. A Mobbin-inspired modal collects identity, photo, life dates, bio, and the relationship to the currently selected person. New people are stored in memory until the page is refreshed.
+Click the **+** button in the top bar to add a new person, or use the **+ Add parent/spouse/child** buttons in a selected person's details panel. The compact form takes a single name field, a clickable avatar for image upload, a combined Birth field (`YYYY` or full date), and a short bio. Optional details — Chinese name, Pinyin, aliases, and death info — live behind a **More details** expander. New people are stored in memory until the page is refreshed.
 
-You can also connect an existing person to the selected person as a parent, spouse, or child instead of creating a duplicate.
+You can also connect an existing person to the selected person as a parent, spouse, or child instead of creating a duplicate. Relationships are explicit: adding a spouse does not make them a parent of existing children, and guards prevent duplicates, self-links, and ancestor cycles. Individual relationship links can be detached from the details panel, and removing a person requires typed confirmation with the affected relatives listed.
 
 ## Quick vertical-slice workflow test
 

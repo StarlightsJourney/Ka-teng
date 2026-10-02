@@ -14,7 +14,7 @@ export function searchAndSelect(query: string): Action {
     perform: (state) => {
       const result = searchPeople(query, state.peopleById)[0]
       return result
-        ? { ...state, query: '', selectedId: result.id, expandedIds: new Set(), editing: false }
+        ? { ...state, query: '', selectedId: result.id, focusId: result.id, expandedIds: new Set(), editing: false }
         : { ...state, query }
     },
   }
@@ -24,7 +24,7 @@ export function selectSearchResult(id: string): Action {
   return {
     name: `search:select:${id}`,
     perform: (state) => state.peopleById.has(id)
-      ? { ...state, query: '', selectedId: id, expandedIds: new Set(), editing: false }
+      ? { ...state, query: '', selectedId: id, focusId: id, expandedIds: new Set(), editing: false }
       : state,
   }
 }

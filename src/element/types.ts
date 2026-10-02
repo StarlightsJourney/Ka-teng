@@ -9,6 +9,12 @@ export type PersonName = {
   pinyin?: string
 }
 
+export type AvatarFocus = {
+  x: number
+  y: number
+  zoom: number
+}
+
 export type Person = {
   id: PersonId
   name: PersonName
@@ -22,9 +28,12 @@ export type Person = {
   altNames?: string[]
   bio?: string
   avatar?: string
+  avatarFocus?: AvatarFocus
   parents?: PersonId[]
   spouses?: PersonId[]
   children?: PersonId[]
+  siblings?: PersonId[]
+  stepSiblings?: PersonId[]
 }
 
 export type Family = {

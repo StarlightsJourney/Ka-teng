@@ -1,38 +1,23 @@
-import { useMemo, useRef, useState } from 'react'
-import { createPerson, displayInitials, fullName, parseName, sanitizeAvatarUrl, type Gender, type Person, type RelationshipType } from '../element'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ageOf, createPerson, displayInitials, fullName, parseName, sanitizeAvatarUrl, type AvatarFocus, type Gender, type Kinship, type Person } from '../element'
+import { LifeFields, PhotoNameRow, type LifeValue } from './PersonFields'
 
 type AddPersonModalProps = {
   anchorPerson?: Person
-  initialRelationship?: RelationshipType | null
+  kin?: Kinship | null
+  initialName?: string
   onClose: () => void
-  onAdd: (person: Person, relationship: RelationshipType | null) => void
+  onAdd: (person: Person) => void
 }
 
-const genders: { value: Gender; label: string }[] = [
-  { value: 'M', label: 'Male' },
-  { value: 'F', label: 'Female' },
-  { value: 'X', label: 'Other' },
-  { value: 'U', label: 'Unknown' },
-]
-
-const relationshipOptions: { value: RelationshipType; label: string }[] = [
-  { value: 'parent', label: 'Parent' },
-  { value: 'spouse', label: 'Spouse' },
-  { value: 'child', label: 'Child' },
-]
-
-function isDateLike(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value)
-}
-
-export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onAdd }: AddPersonModalProps) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [name, setName] = useState('')
+export function AddPersonModal({ anchorPerson, kin, initialName = '', onClose, onAdd }: AddPersonModalProps) {
+  const [name, setName] = useState(initialName)
   const [gender, setGender] = useState<Gender>('U')
-  const [birthValue, setBirthValue] = useState('')
+  const [life, setLife] = useState<LifeValue>({ deceased: false, restingPlace: '' })
   const [avatar, setAvatar] = useState('')
+  const [avatarFocus, setAvatarFocus] = useState<AvatarFocus | undefined>(undefined)
   const [bio, setBio] = useState('')
-  const [relationship, setRelationship] = useState<RelationshipType | null>(initialRelationship ?? (anchorPerson ? 'child' : null))
+  const relationship = anchorPerson ? kin ?? null : null
   const [showMore, setShowMore] = useState(false)
   const [chinese, setChinese] = useState('')
   const [pinyin, setPinyin] = useState('')
@@ -42,72 +27,70 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
   const parsedName = useMemo(() => parseName(name), [name])
   const draft = useMemo<Person>(() => createPerson(parsedName.first, parsedName.last, gender, {
     name: { first: parsedName.first, last: parsedName.last, chinese: chinese.trim() || undefined, pinyin: pinyin.trim() || undefined },
-    ...(birthValue.trim()
-      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim() } : { birth: birthValue.trim() }
-      : {}),
+    birthDate: life.birthDate,
+    deceased: life.deceased || undefined,
+    deathDate: life.deceased ? life.deathDate : undefined,
+    restingPlace: life.deceased ? life.restingPlace.trim() || undefined : undefined,
     bio: bio.slice(0, 500) || undefined,
     avatar: sanitizeAvatarUrl(avatar),
+    avatarFocus: sanitizeAvatarUrl(avatar) ? avatarFocus : undefined,
     altNames: altNames.split(',').map((value) => value.trim()).filter(Boolean),
-  }), [altNames, avatar, bio, birthValue, chinese, gender, parsedName, pinyin])
+  }), [altNames, avatar, avatarFocus, bio, chinese, gender, life, parsedName, pinyin])
 
   const isValid = Boolean(name.trim())
-  const safeAvatar = sanitizeAvatarUrl(avatar)
-
-  const handleUpload = (file: File | undefined) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      const safe = sanitizeAvatarUrl(typeof reader.result === 'string' ? reader.result : undefined)
-      if (safe) setAvatar(safe)
-    })
-    reader.readAsDataURL(file)
-  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     setTouched(true)
     if (!isValid) return
-    onAdd(draft, relationship)
+    onAdd(draft)
   }
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.currentTarget === event.target) onClose()
   }
 
-  const relationshipHeading = anchorPerson && relationship
-    ? `Add as ${relationship} of ${fullName(anchorPerson)}`
-    : 'Add a person'
+  const closeRef = useRef(onClose)
+  useEffect(() => {
+    closeRef.current = onClose
+  })
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      closeRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
+
+  const heading = anchorPerson && relationship ? `New ${relationship}` : 'New person'
+  const anchorName = anchorPerson ? fullName(anchorPerson) : ''
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
-      <div className="modal modal-compact" role="dialog" aria-modal="true" aria-label="Add a person">
+      <div className="modal modal-compact" role="dialog" aria-modal="true" aria-label={anchorPerson && relationship ? `Add ${relationship} of ${anchorName}` : 'Add a person'}>
         <div className="modal-header">
-          <h2>{relationshipHeading}</h2>
-          <button type="button" className="panel-close" onClick={onClose} aria-label="Close">×</button>
+          <h2>{heading}</h2>
+          {anchorPerson && relationship && <p className="modal-subtitle" title={anchorName}>of {anchorName}</p>}
         </div>
         <form className="form-sheet" onSubmit={handleSubmit}>
           <div className="form-section compact">
-            <div className="person-quick-row">
-              <button type="button" className="photo-preview" onClick={() => fileRef.current?.click()} aria-label="Upload photo">
-                {safeAvatar ? <img src={safeAvatar} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} hidden />
-              <div className="person-quick-fields">
-                <label>Name <span className="required-mark">*</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" autoFocus /></label>
-                <div className="form-row short">
-                  <label>Birth<input value={birthValue} onChange={(event) => setBirthValue(event.target.value)} placeholder="YYYY or date" /></label>
-                  <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
-                    {genders.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select></label>
-                </div>
-              </div>
-            </div>
-            {touched && !isValid && <p className="modal-error">Please enter a name.</p>}
-          </div>
-
-          <div className="form-section compact">
-            <label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
-            <p className="bio-counter">{bio.length}/500</p>
+            <PhotoNameRow
+              avatar={avatar}
+              avatarFocus={avatarFocus}
+              gender={gender}
+              initials={displayInitials(draft)}
+              name={name}
+              showError={touched && !isValid}
+              onAvatarChange={setAvatar}
+              onAvatarFocusChange={setAvatarFocus}
+              onGenderChange={setGender}
+              onNameChange={setName}
+            />
+            <LifeFields value={life} onChange={setLife} age={ageOf(draft, new Date())} />
+            <label><span className="field-label">Bio<span className="field-hint">{bio.length}/500</span></span><textarea value={bio} maxLength={500} rows={2} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
           </div>
 
           <button type="button" className="more-details-toggle" onClick={() => setShowMore((current) => !current)} aria-expanded={showMore}>
@@ -116,33 +99,16 @@ export function AddPersonModal({ anchorPerson, initialRelationship, onClose, onA
           {showMore && (
             <div className="form-section compact">
               <div className="form-row">
-                <label>Chinese name<input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
-                <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
+                <label><span className="field-label">Chinese name</span><input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
+                <label><span className="field-label">Pinyin</span><input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
               </div>
-              <label>Also known as<input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
-            </div>
-          )}
-
-          {anchorPerson && (
-            <div className="form-section compact">
-              <div className="relationship-options clean">
-                {relationshipOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`relationship-option ${relationship === option.value ? 'active' : ''}`}
-                    onClick={() => setRelationship(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <label><span className="field-label">Also known as</span><input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
             </div>
           )}
 
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={!isValid}>Add person</button>
+            <button type="submit" className={`btn-primary${isValid ? '' : ' is-incomplete'}`}>{relationship ? `Add ${relationship}` : 'Add person'}</button>
           </div>
         </form>
       </div>

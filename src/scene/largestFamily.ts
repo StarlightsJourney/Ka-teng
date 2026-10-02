@@ -11,6 +11,8 @@ function familyNeighbors(people: readonly Person[]): Map<PersonId, Set<PersonId>
       ...(person.parents ?? []),
       ...(person.spouses ?? []),
       ...(person.children ?? []),
+      ...(person.siblings ?? []),
+      ...(person.stepSiblings ?? []),
     ]
     for (const relatedId of relatedIds) {
       if (!peopleById.has(relatedId)) continue
@@ -19,6 +21,23 @@ function familyNeighbors(people: readonly Person[]): Map<PersonId, Set<PersonId>
     }
   }
   return neighbors
+}
+
+export function familyComponent(people: readonly Person[], startId: PersonId | null): Set<PersonId> {
+  const component = new Set<PersonId>()
+  if (!startId || !people.some((person) => person.id === startId)) return component
+  const neighbors = familyNeighbors(people)
+  const queue = [startId]
+  component.add(startId)
+  while (queue.length) {
+    const id = queue.shift() as PersonId
+    for (const relatedId of neighbors.get(id) ?? []) {
+      if (component.has(relatedId)) continue
+      component.add(relatedId)
+      queue.push(relatedId)
+    }
+  }
+  return component
 }
 
 export function largestFamilyRoot(people: readonly Person[]): PersonId | null {

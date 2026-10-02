@@ -19,7 +19,7 @@ permissions:
     - Exec("npx vite *")
 ---
 
-Run a vertical-slice workflow test on Ka-teng after any change to data loading, family-chart rendering, search, selection, editing, theme, or state transitions. Verify end-to-end behavior with real data and real browser interaction.
+Run a vertical-slice workflow test on Ka-teng after any change to data loading, family graph layout/rendering, search, selection, editing, theme, or state transitions. Verify end-to-end behavior with real data and real browser interaction.
 
 ## When to use
 
@@ -29,7 +29,7 @@ Use this skill after changes to:
 - `src/element/*` — domain types or pure helpers.
 - `src/scene/*` — search, hierarchy, or neighbor navigation.
 - `src/actions/*` — state transitions.
-- `src/renderer/*` — family-chart adapter.
+- `src/renderer/*` — FamilyGraph renderer and camera.
 - `src/components/*` — UI panels, top bar, search, or theme.
 - `src/styles.css` or `src/theme/*` — styling and tokens.
 
@@ -60,7 +60,7 @@ Do not commit media, databases, or user data. If you need to wire the app to fix
 
 ## Numbered workflow
 
-1. **Import data** — start the dev server; the app automatically loads `src/data/big-tree.json`.
+1. **Import data** — start the dev server. `/` opens a blank canvas; `/?sample` loads `src/data/big-tree.json`; **Open** loads a saved family file.
 
    ```bash
    npm run dev
@@ -71,16 +71,18 @@ Do not commit media, databases, or user data. If you need to wire the app to fix
 3. **Reach the first cue/state** — verify:
    - The largest family root is centered.
    - Person cards show names and lifespans.
-   - The navigation hint reads `↑ ↓ ← → navigate · ⌘K search` (or `Ctrl K` on non-Apple).
+   - Generations sit on separate rows, couples side by side, children under their parents.
+   - The view toolbar switches compact/photo cards, zooms and fits.
 
 4. **Interact** — perform at least these actions:
    - Click a person card → details panel opens.
-   - Use `⌘K`/`Ctrl K` → search box focuses.
    - Type in search → suggestions appear; select one → tree centers on that person.
    - Press arrow keys → selection moves to neighbors.
    - Click `+N` on a card with hidden relatives → branch expands.
    - Toggle light/dark theme → colors switch without reload.
-   - Click `+ Add parent/spouse/child` in the details panel → choose to create a new person or connect an existing one.
+   - Click `+ Add parent/spouse/child` in the details panel → create a new person or pick an existing one; answer the follow-up questions.
+   - Drag a person onto a card → pick the relationship → answer the follow-up questions (nothing pre-ticked).
+   - Save to a file, reload, Open the file → same tree.
    - Add/change a field in the edit form and save → card updates in the tree.
 
 5. **Save item** — in Ka-teng mode, click Edit in the details panel, change a field, and click Save. Verify the card updates in the tree.
@@ -125,8 +127,9 @@ If the workflow fails:
 | Capability | Status | Notes |
 |------------|--------|-------|
 | Static JSON data | Verified path | Real source data; no import UI needed today. |
-| In-memory edits | Working locally | Edits persist only until page refresh; no backend. |
-| Live persistence | Not implemented | No DB or storage layer. |
+| In-memory edits | Working locally | Kept until refresh unless saved to a file. |
+| Save / open file | Verified path | JSON download/upload, validated on open. |
+| Autosave / backend | Not implemented | No DB or storage layer. |
 | External avatar loading | Environment-blocked path | CORS/referrer can break images; app falls back to initials. |
 | System-audio / mic / camera | Not implemented | Not required for this app. |
 | Cross-platform desktop build | Not implemented | Browser-only; `dist/` is static. |

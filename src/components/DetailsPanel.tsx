@@ -1,70 +1,122 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ageOf, displayInitials, fullName, getChildren, getParents, getSpouses, parseName, sanitizeAvatarUrl } from '../element'
-import type { Gender, Person, PersonMap, RelationshipType } from '../element'
-import type { PersonPatch } from '../actions'
+import { avatarImageStyle, ageOf, childIdsOf, displayInitials, fullName, isDeceased, lifespan, linkedSiblingIdsOf, parentIdsOf, parseName, sanitizeAvatarUrl, spouseIdsOf } from '../element'
+import type { AvatarFocus, Gender, Kinship, Person, PersonMap, RelationshipType } from '../element'
+import { removalImpact, type PersonPatch } from '../actions'
 
-function isDateLike(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value)
-}
 import { PersonCard } from './PersonCard'
+import { LifeFields, PhotoNameRow, type LifeValue } from './PersonFields'
 
 type DetailsPanelProps = {
   person: Person
   people: PersonMap
-  editing: boolean
+  closing?: boolean
   onSelect: (id: string) => void
   onEdit: () => void
-  onCancel: () => void
-  onSave: (patch: PersonPatch) => void
-  onRemove: () => void
   onClose: () => void
-  onAddPerson: (relationship: RelationshipType) => void
-  onConnectPerson: (relationship: RelationshipType) => void
+  onAddPerson: (kin: Kinship) => void
   onDisconnectPerson: (id: string, relationship: RelationshipType) => void
-  onPreviewRemove?: (id: string) => void
-  onCancelRemove?: () => void
 }
 
-function RelationList({ people, type, onSelect, onDisconnect }: { people: Person[]; type: RelationshipType; onSelect: (id: string) => void; onDisconnect: (id: string, type: RelationshipType) => void }) {
+const RELATION_PREVIEW = 4
+
+function RelationList({ people, type, onSelect, onDisconnect }: { people: Person[]; type: Kinship; onSelect: (id: string) => void; onDisconnect?: (id: string, type: RelationshipType) => void }) {
+  const [expanded, setExpanded] = useState(false)
   if (!people.length) return <p className="empty-relation">None listed</p>
+  const collapsible = people.length > RELATION_PREVIEW + 1
+  const shown = collapsible && !expanded ? people.slice(0, RELATION_PREVIEW) : people
   return (
     <div className="relation-list">
-      {people.map((person) => {
+      {shown.map((person) => {
         const safeAvatar = sanitizeAvatarUrl(person.avatar)
+        const name = fullName(person)
+        const span = lifespan(person)
         return (
-          <div key={person.id} className="relation-row">
-            <button type="button" className="relation-row-main" onClick={() => onSelect(person.id)}>
+          <div key={person.id} className="relation-row" data-gender={person.gender}>
+            <button type="button" className="relation-row-main" onClick={() => onSelect(person.id)} title={name}>
               <span className="relation-avatar">
                 <span>{displayInitials(person)}</span>
-                {safeAvatar && <img src={safeAvatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}
+                {safeAvatar && <img src={safeAvatar} alt="" style={avatarImageStyle(person.avatarFocus)} referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}
               </span>
-              <span className="relation-row-name">{fullName(person)}</span>
+              <span className="relation-row-copy">
+                <span className="relation-row-name">{name}</span>
+                {span && <span className="relation-row-life">{span}</span>}
+              </span>
             </button>
-            <button type="button" className="relation-row-remove" aria-label={`Remove ${type}`} title={`Remove ${type}`} onClick={() => onDisconnect(person.id, type)}>×</button>
+            {onDisconnect && <button type="button" className="relation-row-remove" aria-label={`Remove ${type} ${name}`} title={`Unlink ${type}`} onClick={() => onDisconnect(person.id, type)}>×</button>}
           </div>
         )
       })}
+      {collapsible && (
+        <button type="button" className="relation-toggle" aria-expanded={expanded} onClick={() => setExpanded((open) => !open)}>
+          {expanded ? 'Show fewer' : `Show all ${people.length}`}
+        </button>
+      )}
     </div>
   )
 }
 
-function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPreviewRemove, onCancelRemove }: { person: Person; people: PersonMap; onCancel: () => void; onSave: (patch: PersonPatch) => void; onRemove: () => void; onClose: () => void; onPreviewRemove?: (id: string) => void; onCancelRemove?: () => void }) {
-  const fileRef = useRef<HTMLInputElement>(null)
+function RelationshipSection({ title, type, people, onSelect, onDisconnect, onAdd }: { title: string; type: Kinship; people: Person[]; onSelect: (id: string) => void; onDisconnect?: (id: string, type: RelationshipType) => void; onAdd: (type: Kinship) => void }) {
+  return (
+    <section className="relationship-section">
+      <div className="relationship-heading">
+        <h2>{title}</h2>
+        <span className="relationship-count">{people.length}</span>
+        <button type="button" className="add-relationship-btn" onClick={() => onAdd(type)} aria-label={`Add ${type}`}>+ Add {type}</button>
+      </div>
+      <RelationList people={people} type={type} onSelect={onSelect} onDisconnect={onDisconnect} />
+    </section>
+  )
+}
+
+type EditPersonModalProps = {
+  person: Person
+  people: PersonMap
+  focusId: string | null
+  onCancel: () => void
+  onSave: (patch: PersonPatch) => void
+  onRemove: () => void
+  onDisconnectSibling: (id: string) => void
+  onPreviewRemove?: (id: string) => void
+  onCancelRemove?: () => void
+}
+
+function PeopleChips({ ids, people, tone }: { ids: string[]; people: PersonMap; tone?: 'leaving' }) {
+  return (
+    <ul className={`remove-affected${tone === 'leaving' ? ' is-leaving' : ''}`}>
+      {byIds(ids, people).map((relative) => <li key={relative.id} data-gender={relative.gender} title={fullName(relative)}>{fullName(relative)}</li>)}
+    </ul>
+  )
+}
+
+export function EditPersonModal(props: EditPersonModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={(event) => { if (event.currentTarget === event.target) props.onCancel() }}>
+      <div className="modal edit-modal" role="dialog" aria-modal="true" aria-label={`Edit ${fullName(props.person)}`}>
+        <EditForm key={props.person.id} {...props} />
+      </div>
+    </div>
+  )
+}
+
+function EditForm({ person, people, focusId, onCancel, onSave, onRemove, onDisconnectSibling, onPreviewRemove, onCancelRemove }: EditPersonModalProps) {
   const initialName = `${person.name.first} ${person.name.last}`.trim()
   const [name, setName] = useState(initialName)
   const [gender, setGender] = useState<Gender>(person.gender)
-  const [birthValue, setBirthValue] = useState(person.birthDate ?? person.birth ?? '')
+  const [life, setLife] = useState<LifeValue>(() => ({
+    birthDate: person.birthDate ?? person.birth,
+    deceased: isDeceased(person),
+    deathDate: person.deathDate ?? person.death,
+    restingPlace: person.restingPlace ?? '',
+  }))
   const [avatar, setAvatar] = useState(person.avatar ?? '')
+  const [avatarFocus, setAvatarFocus] = useState<AvatarFocus | undefined>(person.avatarFocus)
   const [bio, setBio] = useState(person.bio ?? '')
   const [showMore, setShowMore] = useState(false)
   const [chinese, setChinese] = useState(person.name.chinese ?? '')
   const [pinyin, setPinyin] = useState(person.name.pinyin ?? '')
   const [altNames, setAltNames] = useState((person.altNames ?? []).join(', '))
-  const [deceased, setDeceased] = useState(person.deceased ?? Boolean(person.deathDate ?? person.death))
-  const [deathValue, setDeathValue] = useState(person.deathDate ?? person.death ?? '')
-  const [restingPlace, setRestingPlace] = useState(person.restingPlace ?? '')
   const [confirmingRemove, setConfirmingRemove] = useState(false)
-  const [confirmation, setConfirmation] = useState('')
+  const [touched, setTouched] = useState(false)
   useEffect(() => {
     if (confirmingRemove) onPreviewRemove?.(person.id)
     else onCancelRemove?.()
@@ -74,17 +126,15 @@ function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPrevi
     ...person,
     name: { first: parsedName.first, last: parsedName.last, chinese: chinese || undefined, pinyin: pinyin || undefined },
     gender,
-    ...(birthValue.trim()
-      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim(), birth: undefined } : { birth: birthValue.trim(), birthDate: undefined }
-      : { birth: undefined, birthDate: undefined }),
-    ...(deceased && deathValue.trim()
-      ? isDateLike(deathValue.trim()) ? { deathDate: deathValue.trim(), death: undefined } : { death: deathValue.trim(), deathDate: undefined }
-      : { death: undefined, deathDate: undefined }),
-    deceased,
-    restingPlace: restingPlace || undefined,
+    birth: undefined,
+    birthDate: life.birthDate,
+    death: undefined,
+    deathDate: life.deceased ? life.deathDate : undefined,
+    deceased: life.deceased,
+    restingPlace: life.deceased ? life.restingPlace || undefined : undefined,
     altNames: altNames.split(',').map((value) => value.trim()).filter(Boolean),
-    bio: bio || undefined, avatar: avatar || undefined,
-  }), [altNames, avatar, bio, birthValue, chinese, deathValue, deceased, gender, parsedName, person, pinyin, restingPlace])
+    bio: bio || undefined, avatar: avatar || undefined, avatarFocus: avatar ? avatarFocus : undefined,
+  }), [altNames, avatar, avatarFocus, bio, chinese, gender, life, parsedName, person, pinyin])
   const age = ageOf(draft, new Date())
   const buildPatch = (): PersonPatch => ({
     first: parsedName.first,
@@ -92,70 +142,68 @@ function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPrevi
     chinese,
     pinyin,
     gender,
-    ...(birthValue.trim()
-      ? isDateLike(birthValue.trim()) ? { birthDate: birthValue.trim(), birth: undefined } : { birth: birthValue.trim(), birthDate: undefined }
-      : { birth: undefined, birthDate: undefined }),
-    ...(deceased && deathValue.trim()
-      ? isDateLike(deathValue.trim()) ? { deathDate: deathValue.trim(), death: undefined } : { death: deathValue.trim(), deathDate: undefined }
-      : { death: undefined, deathDate: undefined }),
-    deceased,
-    restingPlace,
+    birth: '',
+    birthDate: life.birthDate ?? '',
+    death: '',
+    deathDate: life.deceased ? life.deathDate ?? '' : '',
+    deceased: life.deceased,
+    restingPlace: life.deceased ? life.restingPlace : '',
     altNames: draft.altNames,
     bio,
     avatar,
+    avatarFocus: avatar ? avatarFocus ?? null : null,
   })
-  const handleUpload = (file: File | undefined) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      const safe = sanitizeAvatarUrl(typeof reader.result === 'string' ? reader.result : undefined)
-      if (safe) setAvatar(safe)
-    })
-    reader.readAsDataURL(file)
-  }
-  const handleSaveAndClose = () => {
-    onSave(buildPatch())
-    onClose()
-  }
   const handleCancelRef = useRef(onCancel)
+  const confirmingRef = useRef(confirmingRemove)
   useEffect(() => {
     handleCancelRef.current = onCancel
+    confirmingRef.current = confirmingRemove
   })
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopPropagation()
-        handleCancelRef.current()
+        if (confirmingRef.current) setConfirmingRemove(false)
+        else handleCancelRef.current()
       }
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [])
+  const impact = useMemo(() => confirmingRemove ? removalImpact(people, person.id, focusId) : { connections: [], leaving: [] }, [confirmingRemove, focusId, people, person.id])
+  const personName = fullName(person)
+  const siblingLinks = (['full', 'step'] as const).flatMap((kind) => linkedSiblingIdsOf(people, person.id, kind)
+    .map((id) => people.get(id))
+    .filter((relative): relative is Person => Boolean(relative))
+    .map((relative) => ({ relative, kind })))
   return (
-    <form className="form-sheet" onSubmit={(event) => {
+    <form className="form-sheet edit-sheet" onSubmit={(event) => {
       event.preventDefault()
+      if (!name.trim()) {
+        setTouched(true)
+        return
+      }
       onSave(buildPatch())
     }}>
-      <div className="person-edit-header"><strong>Edit person</strong><button type="button" className="panel-close" onClick={handleSaveAndClose} aria-label="Save and close details">×</button></div>
+      <div className="person-edit-header">
+        <strong>Edit person</strong>
+      </div>
       <section className="form-section compact">
-        <div className="person-quick-row">
-          <button type="button" className="photo-preview" onClick={() => fileRef.current?.click()} aria-label="Upload photo">
-            {sanitizeAvatarUrl(avatar) ? <img src={sanitizeAvatarUrl(avatar)} alt="" onError={() => setAvatar('')} /> : <span>{displayInitials(draft)}</span>}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" onChange={(event) => handleUpload(event.target.files?.[0])} hidden />
-          <div className="person-quick-fields">
-            <label>Name <span className="required-mark">*</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" autoFocus /></label>
-            <div className="form-row short">
-              <label>Birth<input value={birthValue} onChange={(event) => setBirthValue(event.target.value)} placeholder="YYYY or date" /></label>
-              <label>Gender<select value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="M">Male</option><option value="F">Female</option><option value="X">Other</option><option value="U">Unknown</option></select></label>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="form-section compact">
-        <label>Bio<textarea value={bio} maxLength={500} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
-        <p className="bio-counter">{bio.length}/500</p>
+        <PhotoNameRow
+          avatar={avatar}
+          avatarFocus={avatarFocus}
+          gender={gender}
+          initials={displayInitials(draft)}
+          name={name}
+          showError={touched && !name.trim()}
+          onAvatarChange={setAvatar}
+          onAvatarFocusChange={setAvatarFocus}
+          onGenderChange={setGender}
+          onNameChange={setName}
+        />
+        <LifeFields value={life} onChange={setLife} age={age} />
+        <label><span className="field-label">Bio<span className="field-hint">{bio.length}/500</span></span><textarea value={bio} maxLength={500} rows={2} onChange={(event) => setBio(event.target.value)} placeholder="Short description…" /></label>
       </section>
       <button type="button" className="more-details-toggle" onClick={() => setShowMore((current) => !current)} aria-expanded={showMore}>
         {showMore ? '▾ Fewer details' : '▸ More details'}
@@ -163,45 +211,66 @@ function EditForm({ person, people, onCancel, onSave, onRemove, onClose, onPrevi
       {showMore && (
         <section className="form-section compact">
           <div className="form-row">
-            <label>Chinese name<input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
-            <label>Pinyin<input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
+            <label><span className="field-label">Chinese name</span><input value={chinese} onChange={(event) => setChinese(event.target.value)} placeholder="中文名" /></label>
+            <label><span className="field-label">Pinyin</span><input value={pinyin} onChange={(event) => setPinyin(event.target.value)} placeholder="Pinyin" /></label>
           </div>
-          <label>Also known as<input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
-          <label className="toggle-row"><input type="checkbox" checked={deceased} onChange={(event) => setDeceased(event.target.checked)} /> Deceased</label>
-          {deceased && <>
-            <div className="form-row short">
-              <label>Death<input value={deathValue} onChange={(event) => setDeathValue(event.target.value)} placeholder="YYYY or date" /></label>
-              <label>Resting place<input value={restingPlace} onChange={(event) => setRestingPlace(event.target.value)} placeholder="Cemetery or memorial" /></label>
-            </div>
-          </>}
+          <label><span className="field-label">Also known as</span><input value={altNames} onChange={(event) => setAltNames(event.target.value)} placeholder="Nicknames, separated by commas" /></label>
         </section>
       )}
-      {age !== undefined && <p className="computed-age">{deceased ? `Died aged ${age}` : `Age ${age}`}</p>}
-      <div className="form-actions"><button type="submit" className="btn-primary">Save</button><button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button></div>
-      {!confirmingRemove
-        ? <button type="button" className="remove-person-link" onClick={() => setConfirmingRemove(true)}>Remove person…</button>
-        : (
-          <div className="remove-confirm">
-            <p><strong>Remove {fullName(person)}?</strong> This will detach them from the family tree. The people below will lose this connection.</p>
-            <ul className="remove-affected">
-              {[...(person.parents ?? []), ...(person.spouses ?? []), ...(person.children ?? [])].map((id) => {
-                const affected = people.get(id)
-                return affected ? <li key={id}>{fullName(affected)}</li> : null
-              }).filter(Boolean)}
-            </ul>
-            <label>Type their full name to confirm<input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder={fullName(person)} /></label>
-            <div className="form-actions">
+      {siblingLinks.length > 0 && (
+        <section className="form-section compact sibling-links">
+          <span className="field-label">Sibling links</span>
+          <div className="sibling-link-chips">
+            {siblingLinks.map(({ relative, kind }) => (
+              <span key={relative.id} className="sibling-link-chip" data-gender={relative.gender}>
+                {fullName(relative)}{kind === 'step' ? ' · step' : ''}
+                <button type="button" aria-label={`Unlink ${fullName(relative)}`} title="Unlink" onClick={() => onDisconnectSibling(relative.id)}>×</button>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+      {confirmingRemove
+        ? (
+          <div className="remove-confirm" role="alertdialog" aria-label={`Remove ${personName} from the tree`}>
+            <p className="remove-confirm-title">Remove {personName} from the tree?</p>
+            <p>{person.name.first || personName} moves to your People list, so you can reconnect them later.</p>
+            {impact.connections.length > 0 && (
+              <>
+                <p className="remove-confirm-label">These connections are removed — the people stay:</p>
+                <PeopleChips ids={impact.connections} people={people} />
+              </>
+            )}
+            {impact.leaving.length > 0
+              ? (
+                <>
+                  <p className="remove-confirm-label">Without {person.name.first || personName}, these people are no longer connected to the rest of the tree and also move to People:</p>
+                  <PeopleChips ids={impact.leaving} people={people} tone="leaving" />
+                </>
+              )
+              : impact.connections.length > 0 && <p className="remove-confirm-label">Everyone else stays in the tree.</p>}
+            <div className="remove-confirm-actions">
               <button type="button" className="btn-secondary" onClick={() => setConfirmingRemove(false)}>Cancel</button>
-              <button type="button" className="btn-danger" disabled={confirmation !== fullName(person)} onClick={onRemove}>Remove person</button>
+              <button type="button" className="btn-danger" onClick={onRemove}>Remove from tree</button>
             </div>
+          </div>
+        )
+        : (
+          <div className="form-actions">
+            <button type="button" className="remove-person-link" onClick={() => setConfirmingRemove(true)}>Remove from tree…</button>
+            <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary">Save</button>
           </div>
         )}
     </form>
   )
 }
 
-export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCancel, onSave, onRemove, onClose, onAddPerson, onConnectPerson, onDisconnectPerson, onPreviewRemove, onCancelRemove }: DetailsPanelProps) {
-  const age = ageOf(person, new Date())
+function byIds(ids: string[], people: PersonMap): Person[] {
+  return ids.map((id) => people.get(id)).filter((person): person is Person => Boolean(person))
+}
+
+export function DetailsPanel({ person, people, closing = false, onSelect, onEdit, onClose, onAddPerson, onDisconnectPerson }: DetailsPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
 
@@ -227,7 +296,7 @@ export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCanc
   }
 
   return (
-    <aside ref={panelRef} className="details-panel">
+    <aside ref={panelRef} className={`details-panel${closing ? ' is-closing' : ''}`} aria-hidden={closing || undefined}>
       <div
         className="details-panel-handle"
         onPointerDown={handlePointerDown}
@@ -235,43 +304,10 @@ export function DetailsPanel({ person, people, editing, onSelect, onEdit, onCanc
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       />
-      {editing
-        ? <EditForm key={person.id} person={person} people={people} onCancel={onCancel} onSave={onSave} onRemove={onRemove} onClose={onClose} onPreviewRemove={onPreviewRemove} onCancelRemove={onCancelRemove} />
-        : <PersonCard person={person} onEdit={onEdit} onClose={onClose} />}
-      {!editing && (
-        <>
-          {(person.altNames?.length || person.bio || person.restingPlace || age !== undefined) && <div className="person-extra">
-            {age !== undefined && <p className="age-line">{person.death || person.deathDate ? `Died aged ${age}` : `Age ${age}`}</p>}
-            {person.altNames?.length ? <p><strong>Also known as:</strong> {person.altNames.join(', ')}</p> : null}
-            {person.restingPlace && <p><strong>Resting place:</strong> {person.restingPlace}</p>}
-            {person.bio && <p className="person-bio">{person.bio}</p>}
-          </div>}
-          <div className="relationship-section">
-            <h2>Parents</h2>
-            <RelationList people={getParents(person, people)} type="parent" onSelect={onSelect} onDisconnect={onDisconnectPerson} />
-            <div className="relationship-actions">
-              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('parent')}>+ Add parent</button>
-              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('parent')}>↔ Connect parent</button>
-            </div>
-          </div>
-          <div className="relationship-section">
-            <h2>Spouses</h2>
-            <RelationList people={getSpouses(person, people)} type="spouse" onSelect={onSelect} onDisconnect={onDisconnectPerson} />
-            <div className="relationship-actions">
-              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('spouse')}>+ Add spouse</button>
-              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('spouse')}>↔ Connect spouse</button>
-            </div>
-          </div>
-          <div className="relationship-section">
-            <h2>Children</h2>
-            <RelationList people={getChildren(person, people)} type="child" onSelect={onSelect} onDisconnect={onDisconnectPerson} />
-            <div className="relationship-actions">
-              <button type="button" className="add-relationship-btn" onClick={() => onAddPerson('child')}>+ Add child</button>
-              <button type="button" className="add-relationship-btn" onClick={() => onConnectPerson('child')}>↔ Connect child</button>
-            </div>
-          </div>
-        </>
-      )}
+      <PersonCard person={person} onEdit={onEdit} onClose={onClose} />
+      <RelationshipSection title="Parents" type="parent" people={byIds(parentIdsOf(people, person.id), people)} onSelect={onSelect} onDisconnect={onDisconnectPerson} onAdd={onAddPerson} />
+      <RelationshipSection title="Spouses" type="spouse" people={byIds(spouseIdsOf(people, person.id), people)} onSelect={onSelect} onDisconnect={onDisconnectPerson} onAdd={onAddPerson} />
+      <RelationshipSection title="Children" type="child" people={byIds(childIdsOf(people, person.id), people)} onSelect={onSelect} onDisconnect={onDisconnectPerson} onAdd={onAddPerson} />
     </aside>
   )
 }

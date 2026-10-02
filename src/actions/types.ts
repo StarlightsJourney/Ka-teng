@@ -3,6 +3,7 @@ import type { PersonId, PersonMap } from '../element'
 export type AppState = {
   peopleById: PersonMap
   selectedId: PersonId | null
+  focusId: PersonId | null
   query: string
   showAll: boolean
   expandedIds: ReadonlySet<PersonId>

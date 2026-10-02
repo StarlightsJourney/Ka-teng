@@ -29,7 +29,7 @@ If the design system is not yet documented in `docs/DESIGN_SYSTEM.md`, the first
 ## Stack and layout
 
 - **Runtime:** React 18 + TypeScript + Vite 8.
-- **Visualization:** `family-chart` for the 2D family tree.
+- **Visualization:** own layout engine (`src/scene/familyLayout.ts`) rendered by `src/renderer/FamilyGraph.tsx` with React cards, SVG connectors and `d3-zoom`.
 - **Data:** static JSON dataset (`src/data/big-tree.json`) normalized in `src/data/`.
 - **State:** `src/actions/` holds pure `Action` objects; `src/components/App.tsx` is the only stateful orchestrator.
 - **Styling:** hand-written CSS in `src/styles.css` with design tokens in `src/theme/tokens.css`. Light/dark themes via `data-theme` attribute.
@@ -52,9 +52,10 @@ src/
 
 | Workstream | Owned files | Shared/coordinator-owned |
 |------------|-------------|--------------------------|
-| Family tree 2D | `src/renderer/FamilyChart2D.tsx`, `src/renderer/familyChartAdapter.ts`, `src/scene/pruneHierarchy.*`, `src/scene/largestFamily.*` | `src/element/*`, `src/actions/*` |
+| Family tree 2D | `src/renderer/FamilyGraph.tsx`, `src/scene/familyLayout.*`, `src/scene/largestFamily.*` | `src/element/*`, `src/actions/*` |
 | Search & navigation | `src/components/SearchBox.tsx`, `src/scene/search.*`, `src/actions/search.*`, `src/actions/select.*` | `src/element/types.ts`, `src/actions/types.ts` |
-| Details & editing | `src/components/DetailsPanel.tsx`, `src/components/PersonCard.tsx`, `src/components/AddPersonModal.tsx`, `src/actions/person.*` | `src/element/person.ts`, `src/element/family.ts` |
+| Details & editing | `src/components/DetailsPanel.tsx`, `src/components/PersonCard.tsx`, `src/components/AddPersonModal.tsx`, `src/components/AddRelativeModal.tsx`, `src/components/FollowUpPrompt.tsx`, `src/actions/person.*` | `src/element/person.ts`, `src/element/family.ts` |
+| People tray & drag-to-connect | `src/components/PeopleTray.tsx`, `src/components/DropConnectPicker.tsx`, `src/components/useDragConnect.ts`, `src/actions/workspace.ts`, `e2e/workflow.spec.ts` | `src/actions/types.ts`, `src/scene/largestFamily.ts` (`familyComponent`) |
 | Theme & shell | `src/theme/*`, `src/components/TopBar.tsx`, `src/components/ThemeToggle.tsx`, `src/styles.css` | `src/theme/tokens.css` |
 | Data & contracts | `src/data/loadBigTree.ts`, `src/data/big-tree.json` | `src/data/index.ts`, `src/element/types.ts` |
 | Shared / root | — | `package.json`, `tsconfig*.json`, `vite.config.ts`, `index.html`, `README.md`, `AGENTS.md`, `docs/*`, `.devin/*` |
@@ -101,6 +102,18 @@ If any command fails, classify the blocker (environment, dependency, code, or te
 - **Browser permissions:** no microphone, camera, or filesystem access are required today.
 - **OS app-data writes:** not currently used; if added, agents must request user permission and report exact dialog/denial. Missing permission marks the feature **environment-blocked**, not silently disabled.
 - **External image loading:** avatar URLs in datasets may fail due to CORS or referrer policy. The app handles this gracefully via `onerror` and initials fallbacks.
+- **Blank canvas by default:** `/` opens an empty workspace. E2E specs that need the bundled dataset must navigate to `/?sample`.
+- **Camera focus vs. selection:** `AppState.focusId` drives what the chart centres on; `selectedId` only drives the details panel. Closing the panel must never change `focusId`.
+- **The graph shows the whole connected family** of the focused person (sample: depth-3 window). The People tray lists everyone outside `familyComponent(focusId)`.
+- **Never infer relationships silently.** Any new connection must go through `suggestFollowUps` + `FollowUpPrompt` (unticked by default). The only automatic link is co-parents → partners. Siblings who share known parents are modelled through those parents; `siblings` (full, parents not yet known) and `stepSiblings` are explicit symmetric links used only for layout brackets and follow-ups — never shown as a list in the details panel and never drawn like a couple.
+- **Save/open files** are client-side downloads/uploads (`src/data/familyFile.ts`); nothing is written to the repo or a server.
+- **Relationship direction convention:** `connectPeople(a, b, kin)` / `disconnectPeople(a, b, kin)` always mean “a is b’s kin”. UI lists show relatives of the selected person, so call them as `(relativeId, selectedId, kin)`. Getting this backwards was a real bug (× in Parents/Children did nothing).
+- **Keep relationship helpers linear.** `parentIdsOf`/`childIdsOf` scan the whole map; never call them inside a per-person loop over all people (that made the Add picker freeze on the 843-person sample). Precompute with `kinCheckerFor` or `buildRelations`-style maps.
+- **No `backdrop-filter` over the animated starfield** — it forces a full re-blur every frame (a modal dropped to 13 fps). Use solid or `color-mix` surfaces.
+- **Never use `aria-disabled` on a button that still does something** (the Add button shows a validation error when clicked); Playwright and screen readers treat it as unclickable. Style with a class instead.
+- **Measure animated elements with `settledBox`** in e2e (modals scale in, sheets slide, toasts spring).
+- **Gender colours** go through `data-gender` + `--g*` variables; never hard-code blue/pink or print “male/female” in the UI.
+- **Drag in e2e:** use `page.mouse` down/move/up (pointer events), and wait for card positions to settle after tree transitions (650 ms) before dragging — see `settledBox` in `e2e/workflow.spec.ts`.
 - **PATH / Node:** project expects Node 18+ and npm. Use `npm install` after dependency changes.
 - **macOS / Windows / Linux:** build is browser-only, so cross-platform builds are limited to the dev server and static `dist/` output.
 

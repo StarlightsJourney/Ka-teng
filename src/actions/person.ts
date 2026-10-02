@@ -1,6 +1,7 @@
-import type { Gender, Person, PersonId, RelationshipType } from '../element'
-import { addRelationship, disconnectRelationship } from '../element'
-import type { Action } from './types'
+import type { AvatarFocus, Gender, Person, PersonId, PersonMap, RelationshipType, SuggestedLink } from '../element'
+import { canConnectKin, connectKin, connectSibling, disconnectRelationship, disconnectSibling, type SiblingKind } from '../element'
+import { familyComponent } from '../scene'
+import type { Action, AppState } from './types'
 
 export type PersonPatch = {
   first?: string
@@ -17,6 +18,7 @@ export type PersonPatch = {
   altNames?: string[]
   bio?: string
   avatar?: string
+  avatarFocus?: AvatarFocus | null
 }
 
 export function startEditing(): Action {
@@ -30,7 +32,7 @@ export function editPerson(id: PersonId): Action {
   return {
     name: `person:edit:${id}`,
     perform: (state) => state.peopleById.has(id)
-      ? { ...state, selectedId: id, expandedIds: new Set(), editing: true }
+      ? { ...state, selectedId: id, editing: true }
       : state,
   }
 }
@@ -67,6 +69,7 @@ export function updatePerson(id: PersonId, patch: PersonPatch): Action {
         ...(patch.altNames === undefined ? {} : { altNames: patch.altNames.length ? patch.altNames : undefined }),
         ...(patch.bio === undefined ? {} : { bio: patch.bio.slice(0, 500) || undefined }),
         ...(patch.avatar === undefined ? {} : { avatar: patch.avatar || undefined }),
+        ...(patch.avatarFocus === undefined ? {} : { avatarFocus: patch.avatarFocus ?? undefined }),
       }
       const peopleById = new Map(state.peopleById)
       peopleById.set(id, next)
@@ -83,7 +86,53 @@ export function removePerson(people: readonly Person[], id: PersonId): Person[] 
       parents: person.parents?.filter((relatedId) => relatedId !== id),
       spouses: person.spouses?.filter((relatedId) => relatedId !== id),
       children: person.children?.filter((relatedId) => relatedId !== id),
+      siblings: person.siblings?.filter((relatedId) => relatedId !== id),
+      stepSiblings: person.stepSiblings?.filter((relatedId) => relatedId !== id),
     }))
+}
+
+export function detachPerson(people: readonly Person[], id: PersonId): Person[] {
+  return people.map((person) => person.id === id
+    ? { ...person, parents: [], spouses: [], children: [], siblings: [], stepSiblings: [] }
+    : {
+      ...person,
+      parents: person.parents?.filter((relatedId) => relatedId !== id),
+      spouses: person.spouses?.filter((relatedId) => relatedId !== id),
+      children: person.children?.filter((relatedId) => relatedId !== id),
+      siblings: person.siblings?.filter((relatedId) => relatedId !== id),
+      stepSiblings: person.stepSiblings?.filter((relatedId) => relatedId !== id),
+    })
+}
+
+export function relativesOf(people: PersonMap, id: PersonId): PersonId[] {
+  const person = people.get(id)
+  const direct = [...(person?.parents ?? []), ...(person?.spouses ?? []), ...(person?.children ?? []), ...(person?.siblings ?? []), ...(person?.stepSiblings ?? [])]
+  const reverse = [...people.values()]
+    .filter((other) => [...(other.parents ?? []), ...(other.spouses ?? []), ...(other.children ?? []), ...(other.siblings ?? []), ...(other.stepSiblings ?? [])].includes(id))
+    .map((other) => other.id)
+  return [...new Set([...direct, ...reverse])].filter((relatedId) => relatedId !== id && people.has(relatedId))
+}
+
+function fallbackFocus(state: AppState, id: PersonId): PersonId | null {
+  if (state.focusId !== id) return state.focusId
+  const relatives = relativesOf(state.peopleById, id)
+  if (relatives.length < 2) return relatives[0] ?? null
+  const after = detachPerson([...state.peopleById.values()], id)
+  return relatives
+    .map((relativeId) => ({ relativeId, size: familyComponent(after, relativeId).size }))
+    .sort((a, b) => b.size - a.size)[0]?.relativeId ?? null
+}
+
+export function detachPersonAction(id: PersonId): Action {
+  return {
+    name: `person:detach:${id}`,
+    perform: (state) => {
+      if (!state.peopleById.has(id)) return state
+      const focusId = fallbackFocus(state, id)
+      const peopleById = new Map(detachPerson([...state.peopleById.values()], id).map((person) => [person.id, person]))
+      return { ...state, peopleById, focusId, selectedId: null, editing: false, expandedIds: new Set() }
+    },
+  }
 }
 
 export function removePersonAction(id: PersonId): Action {
@@ -91,20 +140,29 @@ export function removePersonAction(id: PersonId): Action {
     name: `person:remove:${id}`,
     perform: (state) => {
       if (!state.peopleById.has(id)) return state
+      const focusId = fallbackFocus(state, id)
       const peopleById = new Map(removePerson([...state.peopleById.values()], id).map((person) => [person.id, person]))
-      return { ...state, peopleById, selectedId: null, editing: false, expandedIds: new Set() }
+      return {
+        ...state,
+        peopleById,
+        focusId,
+        selectedId: state.selectedId === id ? null : state.selectedId,
+        editing: state.selectedId === id ? false : state.editing,
+        expandedIds: new Set(),
+      }
     },
   }
 }
 
-export function addPerson(person: Person): Action {
+export function addPerson(person: Person, options: { select?: boolean } = {}): Action {
+  const select = options.select ?? true
   return {
     name: `person:add:${person.id}`,
     perform: (state) => {
       if (state.peopleById.has(person.id)) return state
       const peopleById = new Map(state.peopleById)
       peopleById.set(person.id, person)
-      return { ...state, peopleById, selectedId: person.id, expandedIds: new Set(state.expandedIds) }
+      return { ...state, peopleById, selectedId: select ? person.id : state.selectedId, expandedIds: new Set(state.expandedIds) }
     },
   }
 }
@@ -112,14 +170,26 @@ export function addPerson(person: Person): Action {
 export function connectPeople(
   fromId: PersonId,
   toId: PersonId,
-  relationship: RelationshipType,
+  kin: RelationshipType,
 ): Action {
   return {
-    name: `person:connect:${fromId}:${toId}:${relationship}`,
-    perform: (state) => ({
-      ...state,
-      peopleById: addRelationship(state.peopleById, fromId, toId, relationship),
-    }),
+    name: `person:connect:${fromId}:${toId}:${kin}`,
+    perform: (state) => canConnectKin(state.peopleById, fromId, toId, kin)
+      ? { ...state, peopleById: connectKin(state.peopleById, fromId, toId, kin) }
+      : state,
+  }
+}
+
+export function connectSuggestions(links: readonly SuggestedLink[]): Action {
+  return {
+    name: `person:connect-suggestions:${links.length}`,
+    perform: (state) => {
+      const peopleById = links.reduce(
+        (people, link) => canConnectKin(people, link.fromId, link.toId, link.kin) ? connectKin(people, link.fromId, link.toId, link.kin) : people,
+        state.peopleById,
+      )
+      return peopleById === state.peopleById ? state : { ...state, peopleById }
+    },
   }
 }
 
@@ -135,4 +205,41 @@ export function disconnectPeople(
       peopleById: disconnectRelationship(state.peopleById, fromId, toId, relationship),
     }),
   }
+}
+
+export function connectSiblings(fromId: PersonId, toId: PersonId, kind: SiblingKind): Action {
+  return {
+    name: `person:sibling:${fromId}:${toId}:${kind}`,
+    perform: (state) => {
+      const peopleById = connectSibling(state.peopleById, fromId, toId, kind)
+      return peopleById === state.peopleById ? state : { ...state, peopleById }
+    },
+  }
+}
+
+export function disconnectSiblings(a: PersonId, b: PersonId): Action {
+  return {
+    name: `person:unsibling:${a}:${b}`,
+    perform: (state) => ({ ...state, peopleById: disconnectSibling(state.peopleById, a, b) }),
+  }
+}
+
+export type RemovalImpact = {
+  connections: PersonId[]
+  leaving: PersonId[]
+}
+
+export function removalImpact(people: PersonMap, id: PersonId, focusId: PersonId | null): RemovalImpact {
+  const connections = relativesOf(people, id)
+  const list = [...people.values()]
+  const before = familyComponent(list, id)
+  before.delete(id)
+  if (!before.size) return { connections, leaving: [] }
+  const after = detachPerson(list, id)
+  const keepAnchor = focusId && focusId !== id && before.has(focusId)
+    ? focusId
+    : [...before].map((candidate) => ({ candidate, size: familyComponent(after, candidate).size }))
+      .sort((a, b) => b.size - a.size)[0]?.candidate ?? null
+  const kept = familyComponent(after, keepAnchor)
+  return { connections, leaving: [...before].filter((personId) => !kept.has(personId)) }
 }

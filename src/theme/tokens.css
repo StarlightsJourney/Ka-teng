@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg: #F5F5F7;
   --surface: #FFFFFF;
   --surface-2: rgba(0, 0, 0, .04);
@@ -16,12 +17,23 @@
   --accent-fg: #FFFFFF;
   --accent-soft: rgba(0, 0, 0, .08);
   --link: #0087FF;
-  --male: #4A7FD6;
-  --male-tint: #DBEDFE;
-  --male-ink: #4A7FD6;
-  --female: #D46A8A;
-  --female-tint: #FFE0E8;
-  --female-ink: #D46A8A;
+  --male: #3B4A7A;
+  --male-tint: rgba(59, 74, 122, .1);
+  --male-ink: #2F3C66;
+  --female: #7E4470;
+  --female-tint: rgba(126, 68, 112, .1);
+  --female-ink: #6A3860;
+  --other: #8A7A52;
+  --other-tint: rgba(138, 122, 82, .14);
+  --other-ink: #6F6140;
+  --danger: #B1493A;
+  --danger-fg: #FFFFFF;
+  --danger-soft: rgba(177, 73, 58, .08);
+  --star: rgba(3, 3, 2, .42);
+  --warp-trails: 0;
+  --nebula-1: rgba(59, 74, 122, .06);
+  --nebula-2: rgba(126, 68, 112, .045);
+  --sky: radial-gradient(ellipse at 50% 120%, #FFFFFF 0%, #F5F5F7 60%);
   --neutral-tint: #FDE99B;
   --line: rgba(3, 3, 2, .25);
   --radius-sm: 8px;
@@ -37,6 +49,7 @@
 }
 
 [data-theme='light'] {
+  color-scheme: light;
   --bg: #F5F5F7;
   --surface: #FFFFFF;
   --surface-2: rgba(0, 0, 0, .04);
@@ -54,12 +67,23 @@
   --accent-fg: #FFFFFF;
   --accent-soft: rgba(0, 0, 0, .08);
   --link: #0087FF;
-  --male: #4A7FD6;
-  --male-tint: #DBEDFE;
-  --male-ink: #4A7FD6;
-  --female: #D46A8A;
-  --female-tint: #FFE0E8;
-  --female-ink: #D46A8A;
+  --male: #3B4A7A;
+  --male-tint: rgba(59, 74, 122, .1);
+  --male-ink: #2F3C66;
+  --female: #7E4470;
+  --female-tint: rgba(126, 68, 112, .1);
+  --female-ink: #6A3860;
+  --other: #8A7A52;
+  --other-tint: rgba(138, 122, 82, .14);
+  --other-ink: #6F6140;
+  --danger: #B1493A;
+  --danger-fg: #FFFFFF;
+  --danger-soft: rgba(177, 73, 58, .08);
+  --star: rgba(3, 3, 2, .42);
+  --warp-trails: 0;
+  --nebula-1: rgba(59, 74, 122, .06);
+  --nebula-2: rgba(126, 68, 112, .045);
+  --sky: radial-gradient(ellipse at 50% 120%, #FFFFFF 0%, #F5F5F7 60%);
   --neutral-tint: #FDE99B;
   --line: rgba(3, 3, 2, .25);
   --radius-sm: 8px;
@@ -75,6 +99,7 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --bg: #07080A;
   --surface: rgba(255, 255, 255, .05);
   --surface-2: rgba(255, 255, 255, .1);
@@ -92,12 +117,23 @@
   --accent-fg: #FFFFFF;
   --accent-soft: rgba(255, 99, 99, .14);
   --link: #FFFFFF;
-  --male: #6FA1FF;
-  --male-tint: rgba(111, 161, 255, .12);
-  --male-ink: #6FA1FF;
-  --female: #F08FB0;
-  --female-tint: rgba(240, 143, 176, .12);
-  --female-ink: #F08FB0;
+  --male: #A5B0D6;
+  --male-tint: rgba(165, 176, 214, .12);
+  --male-ink: #C3CAE6;
+  --female: #C9A2C4;
+  --female-tint: rgba(201, 162, 196, .12);
+  --female-ink: #DCC0D8;
+  --other: #C2B48C;
+  --other-tint: rgba(194, 180, 140, .14);
+  --other-ink: #D4C8A6;
+  --danger: #FF6363;
+  --danger-fg: #FFFFFF;
+  --danger-soft: rgba(255, 99, 99, .12);
+  --star: rgba(236, 238, 255, .9);
+  --warp-trails: 1;
+  --nebula-1: rgba(96, 108, 190, .16);
+  --nebula-2: rgba(150, 90, 160, .12);
+  --sky: radial-gradient(ellipse at 50% 120%, #1A1C24 0%, #07080A 62%);
   --neutral-tint: rgba(255, 255, 255, .06);
   --line: rgba(255, 255, 255, .18);
   --radius-sm: 6px;

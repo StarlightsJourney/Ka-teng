@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type FocusEvent } from 'react'
-import { displayInitials, fullName, sanitizeAvatarUrl } from '../element'
+import { avatarImageStyle, displayInitials, fullName, sanitizeAvatarUrl } from '../element'
 import type { Person } from '../element'
 
 type SearchBoxProps = {
@@ -9,7 +9,6 @@ type SearchBoxProps = {
   suggestions: Person[]
   onSelect: (id: string) => void
   onDismiss: () => void
-  shortcut: string
   inputRef: (input: HTMLInputElement | null) => void
   placeholder?: string
 }
@@ -23,7 +22,7 @@ function HighlightedName({ person, query }: { person: Person; query: string }) {
   return <>{name.slice(0, index)}<strong>{name.slice(index, index + needle.length)}</strong>{name.slice(index + needle.length)}</>
 }
 
-export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, shortcut, inputRef, placeholder = 'Search people…' }: SearchBoxProps) {
+export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelect, onDismiss, inputRef, placeholder = 'Search people…' }: SearchBoxProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const boxRef = useRef<HTMLLabelElement>(null)
@@ -65,14 +64,13 @@ export function SearchBox({ value, onChange, onSubmit, suggestions = [], onSelec
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
       />
-      <kbd>{shortcut}</kbd>
       {value.trim() && suggestions.length > 0 && !dismissed && (
         <div className="search-suggestions" role="listbox">
           {suggestions.map((person, index) => {
             const safeAvatar = sanitizeAvatarUrl(person.avatar)
             return (
               <button key={person.id} type="button" className={index === selectedIndex ? 'active' : ''} role="option" aria-selected={index === selectedIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(person.id)}>
-                <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{safeAvatar && <img src={safeAvatar} alt="" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
+                <span className="suggestion-avatar"><span>{displayInitials(person)}</span>{safeAvatar && <img src={safeAvatar} alt="" style={avatarImageStyle(person.avatarFocus)} referrerPolicy="no-referrer" onError={(event) => event.currentTarget.classList.add('is-error')} />}</span>
                 <span className="suggestion-name"><HighlightedName person={person} query={value} /></span>
               </button>
             )

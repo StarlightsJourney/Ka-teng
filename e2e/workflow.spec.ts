@@ -530,9 +530,17 @@ test('view controls live in the top bar beside the theme toggle, with icon-only 
 test('clicking a card glides the view to that person', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/?sample')
-  const target = page.locator('.kt-card:not(.is-main)').nth(2)
-  const name = (await target.locator('.kt-name').textContent()) ?? ''
-  await target.click()
+  await page.waitForTimeout(800)
+  const name = await page.locator('.kt-card:not(.is-main)').evaluateAll((cards) => {
+    const visible = cards.find((card) => {
+      const rect = card.getBoundingClientRect()
+      return rect.left > 380 && rect.right < 1020 && rect.top > 120 && rect.bottom < 860
+    })
+    return visible?.querySelector('.kt-name')?.textContent ?? ''
+  })
+  expect(name).not.toBe('')
+  await treeCard(page, name).first().click()
+  await expect(page.locator('.kt-card.is-main .kt-name')).toHaveText(name)
   await expect.poll(async () => {
     const box = await treeCard(page, name).first().boundingBox()
     return Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - 720)

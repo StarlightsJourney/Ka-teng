@@ -314,11 +314,13 @@ export function FamilyGraph({ people, mainId, panelOpen, expandedIds, removingId
     mainIdRef.current = mainId
   })
 
+  const cameraBusyUntilRef = useRef(0)
   const applyTransform = useCallback((transform: ZoomTransform, duration: number) => {
     const viewport = viewportRef.current
     const behavior = zoomRef.current
     if (!viewport || !behavior) return
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    cameraBusyUntilRef.current = !duration || reduce ? 0 : performance.now() + duration
     const selection = select(viewport)
     selection.interrupt()
     if (!duration || reduce) selection.call(behavior.transform, transform)
@@ -451,19 +453,22 @@ export function FamilyGraph({ people, mainId, panelOpen, expandedIds, removingId
   }, [cardMode, centerOn, ensureVisible, hasTree, layout, mainId, panelOpen, reframe, viewMode])
 
   useEffect(() => {
-    const onSheetSettled = (event: AnimationEvent) => {
-      if (!(event.target instanceof Element) || !event.target.matches('.people-tray, .details-panel, .people-rail, .people-inventory')) return
-      if (event.target.classList.contains('is-closing')) return
-      ensureVisible(mainIdRef.current, MOVE_MS)
+    let timer = 0
+    const recheck = () => {
+      window.clearTimeout(timer)
+      const wait = Math.max(30, cameraBusyUntilRef.current - performance.now() + 30)
+      timer = window.setTimeout(() => {
+        if (performance.now() < cameraBusyUntilRef.current) recheck()
+        else ensureVisible(mainIdRef.current, MOVE_MS)
+      }, wait)
     }
-    const onSheetGone = (event: AnimationEvent) => {
-      if (event.target instanceof Element && event.target.classList.contains('is-closing')) window.setTimeout(() => ensureVisible(mainIdRef.current, MOVE_MS), 30)
+    const onSheetAnimationEnd = (event: AnimationEvent) => {
+      if (event.target instanceof Element && event.target.matches('.people-tray, .details-panel, .people-rail, .people-inventory')) recheck()
     }
-    document.addEventListener('animationend', onSheetSettled)
-    document.addEventListener('animationend', onSheetGone)
+    document.addEventListener('animationend', onSheetAnimationEnd)
     return () => {
-      document.removeEventListener('animationend', onSheetSettled)
-      document.removeEventListener('animationend', onSheetGone)
+      window.clearTimeout(timer)
+      document.removeEventListener('animationend', onSheetAnimationEnd)
     }
   }, [ensureVisible])
 
